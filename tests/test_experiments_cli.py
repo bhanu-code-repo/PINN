@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 import experiments.common as common
 from experiments.burgers.train import app as burgers_app
 from experiments.harmonic_oscillator.train import app as harmonic_app
+from experiments.parametric_harmonic.train import app as parametric_app
 from experiments.schrodinger.train import app as schrodinger_app
 
 runner = CliRunner()
@@ -71,3 +72,40 @@ def test_predict_without_any_run_fails_cleanly(tmp_path, monkeypatch):
     monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path / "empty")
     result = runner.invoke(harmonic_app, ["predict", "--no-show"])
     assert result.exit_code != 0
+
+
+def test_parametric_ensemble_lifecycle(tmp_path, monkeypatch):
+    """Parametric experiment: ensemble train -> predict with sigma band -> compare."""
+    import numpy as np
+
+    run_dir = tmp_path / "parametric_harmonic" / "run1"
+
+    # --- train a tiny 2-member ensemble ---
+    invoke(parametric_app, [
+        "train", "-e", "3", "--n-physics", "200", "--ensemble", "2",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "checkpoint_1.pt").exists()
+    assert (run_dir / "metrics.json").exists()
+
+    # --- predict a never-trained instance: mean + std saved ---
+    invoke(parametric_app, [
+        "predict", "--w0", "40", "-d", "1.5", "--run", str(run_dir), "--no-show",
+    ])
+    data = np.load(run_dir / "predictions.npz")
+    assert data["u_mean"].shape == data["u_std"].shape
+    assert (data["u_std"] >= 0).all()
+    assert float(data["u_std"].max()) > 0  # two members must disagree somewhere
+    assert (run_dir / "prediction.png").exists()
+
+    # --- out-of-box instance still runs but warns ---
+    result = invoke(parametric_app, [
+        "predict", "--w0", "150", "-d", "1.0", "--run", str(run_dir), "--no-show",
+    ])
+    assert "OUTSIDE the trained box" in result.output
+
+    # --- compare discovers the run ---
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(parametric_app, ["compare"])
+    assert "No runs" not in result.output

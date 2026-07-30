@@ -24,7 +24,8 @@ PINN/
 ├── experiments/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
-│   └── schrodinger/              # Schrödinger equation
+│   ├── schrodinger/              # Schrödinger equation
+│   └── parametric_harmonic/      # Parametric family (t,w0,d) + deep ensembles
 ├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
@@ -68,6 +69,12 @@ uv run train-harmonic compare            # rank all runs by their recorded metri
 | Harmonic oscillator | `u'' + μu' + ku = 0` | `uv run train-harmonic train` | [README](experiments/harmonic_oscillator/README.md) |
 | Burgers | `u_t + u·u_x = ν·u_xx` | `uv run train-burgers train` | [README](experiments/burgers/README.md) |
 | Schrödinger | `i·h_t + ½·h_xx + |h|²·h = 0` | `uv run train-schrodinger train` | [README](experiments/schrodinger/README.md) |
+| Parametric harmonic | whole `(w0, d)` family, one model | `uv run train-parametric train` | [README](experiments/parametric_harmonic/README.md) |
+
+The parametric experiment lifts "one model = one problem instance": the network takes
+`(t, w0, d)` as input, so `predict --w0 40 -d 1.5` solves a **never-trained** instance in
+milliseconds. It also supports deep ensembles (`train --ensemble 5`) for ±2σ
+epistemic-uncertainty bands at prediction time.
 
 Each CLI also provides `predict` (re-evaluate a saved model — defaults to the latest run;
 checkpoints are self-describing, so the architecture is rebuilt automatically from the stored

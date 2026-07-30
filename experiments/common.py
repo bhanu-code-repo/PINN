@@ -106,6 +106,7 @@ def load_model(
     run_dir: str | Path,
     build_model: Callable[[dict], nn.Module],
     device: torch.device | None = None,
+    checkpoint_name: str = "checkpoint.pt",
 ) -> tuple[nn.Module, dict]:
     """Rebuild and load a trained model from a run directory's checkpoint.
 
@@ -114,9 +115,11 @@ def load_model(
     checkpoints are self-describing; no hyperparameters need to be remembered.
 
     Args:
-        run_dir: A run directory containing ``checkpoint.pt``.
+        run_dir: A run directory containing the checkpoint file.
         build_model: Experiment factory ``config -> nn.Module``.
         device: Target device (default: CUDA if available, else CPU).
+        checkpoint_name: Checkpoint filename inside ``run_dir`` (ensemble runs
+            store additional members as ``checkpoint_1.pt``, ...).
 
     Returns:
         ``(model, config)`` — the model in eval mode on ``device``, and the
@@ -124,7 +127,7 @@ def load_model(
     """
     if device is None:
         device = get_device()
-    checkpoint_path = Path(run_dir) / "checkpoint.pt"
+    checkpoint_path = Path(run_dir) / checkpoint_name
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     config = checkpoint["metadata"]
 
