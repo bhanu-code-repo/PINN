@@ -68,13 +68,13 @@ From the repository root:
 
 ```bash
 uv sync --all-packages
-uv run train-burgers           # train with defaults
+uv run train-burgers train           # train with defaults
 ```
 
 ### CLI reference
 
 ```
-uv run train-burgers [OPTIONS]
+uv run train-burgers train [OPTIONS]
 ```
 
 | Option | Short | Type | Default | Description |
@@ -92,10 +92,35 @@ uv run train-burgers [OPTIONS]
 
 ```bash
 # Quick smoke test with a smoother (more viscous) solution
-uv run train-burgers -e 5000 --nu 0.1
+uv run train-burgers train -e 5000 --nu 0.1
 
 # Full run, custom artifact directory, headless
-uv run train-burgers -o results/burgers --no-show
+uv run train-burgers train -o results/burgers --no-show
+```
+
+### Working with trained models
+
+The CLI is multi-command — `train`, `predict`, and `compare`:
+
+```bash
+# Re-evaluate a trained model without retraining (defaults to the LATEST run)
+uv run train-burgers predict
+uv run train-burgers predict --run outputs/burgers/<timestamp> --no-show
+# -> writes predictions.npz + prediction_contour.png + prediction_snapshots.png into the run directory
+
+# Rank all runs by final loss (reads each run's metrics.json)
+uv run train-burgers compare
+```
+
+Checkpoints are **self-describing**: the run config is stored inside
+`checkpoint.pt`, so `predict` rebuilds the exact architecture automatically —
+no hyperparameters to remember. Programmatic use:
+
+```python
+from experiments.common import find_latest_run, load_model
+from experiments.burgers.train import build_model
+
+model, config = load_model(find_latest_run("burgers"), build_model)
 ```
 
 ---

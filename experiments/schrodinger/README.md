@@ -84,13 +84,13 @@ From the repository root:
 
 ```bash
 uv sync --all-packages
-uv run train-schrodinger       # train with defaults
+uv run train-schrodinger train       # train with defaults
 ```
 
 ### CLI reference
 
 ```
-uv run train-schrodinger [OPTIONS]
+uv run train-schrodinger train [OPTIONS]
 ```
 
 | Option | Short | Type | Default | Description |
@@ -107,10 +107,35 @@ uv run train-schrodinger [OPTIONS]
 
 ```bash
 # Quick smoke test
-uv run train-schrodinger -e 5000 -n 50
+uv run train-schrodinger train -e 5000 -n 50
 
 # Full run, custom artifact directory, headless
-uv run train-schrodinger -o results/nls --no-show
+uv run train-schrodinger train -o results/nls --no-show
+```
+
+### Working with trained models
+
+The CLI is multi-command — `train`, `predict`, and `compare`:
+
+```bash
+# Re-evaluate a trained model without retraining (defaults to the LATEST run)
+uv run train-schrodinger predict
+uv run train-schrodinger predict --run outputs/schrodinger/<timestamp> --no-show
+# -> writes predictions.npz + prediction_contour.png + prediction_snapshots.png into the run directory
+
+# Rank all runs by final loss (reads each run's metrics.json)
+uv run train-schrodinger compare
+```
+
+Checkpoints are **self-describing**: the run config is stored inside
+`checkpoint.pt`, so `predict` rebuilds the exact architecture automatically —
+no hyperparameters to remember. Programmatic use:
+
+```python
+from experiments.common import find_latest_run, load_model
+from experiments.schrodinger.train import build_model
+
+model, config = load_model(find_latest_run("schrodinger"), build_model)
 ```
 
 ---

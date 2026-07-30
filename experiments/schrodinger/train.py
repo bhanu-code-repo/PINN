@@ -11,6 +11,8 @@ Every run writes a self-contained artifact directory (checkpoint, metrics,
 plots, logs). See the README in this directory for the full methodology.
 """
 
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -20,7 +22,16 @@ import typer
 from loguru import logger
 from pinn import PINN, PINNTrainer, plot_contour
 
-from experiments.common import init_run, print_summary, save_metrics, show_banner
+from experiments.common import (
+    compare_runs,
+    find_latest_run,
+    get_device,
+    init_run,
+    load_model,
+    print_summary,
+    save_metrics,
+    show_banner,
+)
 
 app = typer.Typer(help="Train a PINN for the Schrödinger Equation.")
 
@@ -39,6 +50,20 @@ class ComplexPINN(nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         out = self.network(torch.cat([x, t], dim=1))
         return out[:, 0:1], out[:, 1:2]
+
+
+def build_model(config: dict) -> nn.Module:
+    """Reconstruct the model architecture from a run config.
+
+    Used by both training and prediction so that checkpoints are
+    self-describing: ``load_model(run_dir, build_model)`` needs no manually
+    remembered hyperparameters.
+    """
+    return ComplexPINN(
+        input_dim=2,
+        hidden_layers=config["hidden_layers"],
+        hidden_neurons=config["hidden_neurons"],
+    )
 
 
 def build_losses(device: torch.device) -> dict:
@@ -184,7 +209,7 @@ def solve_schrodinger_equation(
     logger.info("Config: {}", config)
 
     # 1. Model, losses, trainer
-    model = ComplexPINN(input_dim=2, hidden_layers=hidden_layers, hidden_neurons=hidden_neurons)
+    model = build_model(config)
     loss_functions = build_losses(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     trainer = PINNTrainer(model, device=device)
@@ -251,6 +276,55 @@ def train(
         output_dir=output_dir,
         show=show,
     )
+
+
+@app.command()
+def predict(
+    run: str | None = typer.Option(
+        None, "--run", "-r",
+        help="Run directory containing checkpoint.pt (default: latest run).",
+    ),
+    show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
+):
+    """Load a trained model and evaluate |h| on the space-time grid.
+
+    Writes predictions.npz, prediction_contour.png, and prediction_snapshots.png
+    into the run directory.
+    """
+    from pinn import setup_logging
+
+    setup_logging()
+    run_dir = Path(run) if run else find_latest_run(EXPERIMENT)
+    device = get_device()
+    model, _config = load_model(run_dir, build_model, device)
+
+    metrics, arrays = evaluate(model, device)
+    np.savez(
+        run_dir / "predictions.npz",
+        X=arrays["X"], T=arrays["T"], h_mag=arrays["h_mag"],
+        x=arrays["x"], h_mag_0=arrays["h_mag_0"], h_exact_0=arrays["h_exact_0"],
+        h_mag_peak=arrays["h_mag_peak"],
+    )
+    logger.info("Predictions saved to {}", run_dir / "predictions.npz")
+
+    plot_contour(
+        arrays["T"], arrays["X"], arrays["h_mag"],
+        title=f"Prediction from {run_dir.name} — Schr\u00f6dinger Equation",
+        xlabel="t", ylabel="x", clabel="|h(t,x)|",
+        save_path=str(run_dir / "prediction_contour.png"), show=show,
+    )
+    make_snapshot_plot(arrays, str(run_dir / "prediction_snapshots.png"), show)
+    print_summary("Prediction Summary", {
+        "Run": str(run_dir),
+        "Relative L2 Error (t=0)": f"{metrics['relative_l2_error_t0']:.4e}",
+        "Peak |h| at t=pi/4": f"{metrics['peak_magnitude_t_pi4']:.3f}",
+    })
+
+
+@app.command()
+def compare():
+    """Rank all runs of this experiment by their recorded metrics."""
+    compare_runs(EXPERIMENT)
 
 
 if __name__ == "__main__":

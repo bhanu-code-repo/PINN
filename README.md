@@ -52,17 +52,23 @@ This installs the `pinn` library (editable, from `libs/pinn`), all experiment de
 ### Run an experiment
 
 ```bash
-uv run train-harmonic --help     # CLI reference
-uv run train-harmonic            # train with defaults
+uv run train-harmonic --help             # CLI reference (train / predict / compare)
+uv run train-harmonic train              # train with defaults
+uv run train-harmonic predict            # evaluate the latest trained model (no retraining)
+uv run train-harmonic compare            # rank all runs by their recorded metrics
 ```
 
 ## Experiments
 
 | Experiment | Equation | Entry point | Docs |
 |------------|----------|-------------|------|
-| Harmonic oscillator | `u'' + μu' + ku = 0` | `uv run train-harmonic` | [README](experiments/harmonic_oscillator/README.md) |
-| Burgers | `u_t + u·u_x = ν·u_xx` | `uv run train-burgers` | [README](experiments/burgers/README.md) |
-| Schrödinger | `i·h_t + ½·h_xx + |h|²·h = 0` | `uv run train-schrodinger` | [README](experiments/schrodinger/README.md) |
+| Harmonic oscillator | `u'' + μu' + ku = 0` | `uv run train-harmonic train` | [README](experiments/harmonic_oscillator/README.md) |
+| Burgers | `u_t + u·u_x = ν·u_xx` | `uv run train-burgers train` | [README](experiments/burgers/README.md) |
+| Schrödinger | `i·h_t + ½·h_xx + |h|²·h = 0` | `uv run train-schrodinger train` | [README](experiments/schrodinger/README.md) |
+
+Each CLI also provides `predict` (re-evaluate a saved model — defaults to the latest run;
+checkpoints are self-describing, so the architecture is rebuilt automatically from the stored
+config) and `compare` (rank all runs of an experiment by their `metrics.json`).
 
 ## Adding a New Experiment
 

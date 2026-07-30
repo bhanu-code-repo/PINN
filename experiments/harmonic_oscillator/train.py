@@ -9,6 +9,7 @@ Every run writes a self-contained artifact directory (checkpoint, metrics,
 plots, logs). See the README in this directory for the full methodology.
 """
 
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -18,7 +19,16 @@ import typer
 from loguru import logger
 from pinn import PINN, PINNTrainer, plot_comparison_1d
 
-from experiments.common import init_run, print_summary, save_metrics, show_banner
+from experiments.common import (
+    compare_runs,
+    find_latest_run,
+    get_device,
+    init_run,
+    load_model,
+    print_summary,
+    save_metrics,
+    show_banner,
+)
 
 app = typer.Typer(help="Train a PINN for the Damped Harmonic Oscillator.")
 
@@ -40,6 +50,21 @@ class Ansatz(nn.Module):
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         return self.backbone(t) * torch.sin(self.a * t + self.b)
+
+
+def build_model(config: dict) -> nn.Module:
+    """Reconstruct the model architecture from a run config.
+
+    Used by both training and prediction so that checkpoints are
+    self-describing: ``load_model(run_dir, build_model)`` needs no manually
+    remembered hyperparameters.
+    """
+    backbone = PINN(
+        input_dim=1,
+        hidden_layers=config["hidden_layers"],
+        hidden_neurons=config["hidden_neurons"],
+    )
+    return Ansatz(backbone)
 
 
 def exact_solution(d: float, w0: float, t: np.ndarray) -> np.ndarray:
@@ -131,8 +156,7 @@ def solve_harmonic_oscillator(
     logger.info("Config: {}", config)
 
     # 2. Model, losses, trainer
-    backbone = PINN(input_dim=1, hidden_layers=hidden_layers, hidden_neurons=hidden_neurons)
-    model = Ansatz(backbone)
+    model = build_model(config)
     loss_functions = build_losses(mu, k, t_domain, n_collocation=100, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     trainer = PINNTrainer(model, device=device)
@@ -201,6 +225,58 @@ def train(
         output_dir=output_dir,
         show=show,
     )
+
+
+@app.command()
+def predict(
+    run: str | None = typer.Option(
+        None, "--run", "-r",
+        help="Run directory containing checkpoint.pt (default: latest run).",
+    ),
+    n_points: int = typer.Option(300, "--n-points", help="Number of evaluation points."),
+    show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
+):
+    """Load a trained model and evaluate it against the exact solution.
+
+    Writes predictions.npz and prediction.png into the run directory.
+    """
+    from pinn import setup_logging
+
+    setup_logging()
+    run_dir = Path(run) if run else find_latest_run(EXPERIMENT)
+    device = get_device()
+    model, config = load_model(run_dir, build_model, device)
+
+    d, w0 = config["d"], config["w0"]
+    t_domain = (0.0, 1.0)
+    t_test = torch.linspace(*t_domain, n_points).view(-1, 1).to(device)
+    with torch.no_grad():
+        u_pinn = model(t_test).cpu().numpy()
+    t_np = t_test.cpu().numpy()
+    u_exact = exact_solution(d, w0, t_np)
+    rel_l2 = float(np.linalg.norm(u_pinn - u_exact) / np.linalg.norm(u_exact))
+
+    np.savez(run_dir / "predictions.npz", t=t_np, u_pinn=u_pinn, u_exact=u_exact)
+    logger.info("Predictions saved to {}", run_dir / "predictions.npz")
+
+    plot_comparison_1d(
+        t_np, u_exact, u_pinn,
+        title=f"Prediction from {run_dir.name} (w0={w0})",
+        xlabel="t", ylabel="u(t)",
+        exact_label="Exact Solution", pred_label="PINN Solution",
+        save_path=str(run_dir / "prediction.png"), show=show,
+    )
+    print_summary("Prediction Summary", {
+        "Run": str(run_dir),
+        "Relative L2 Error": f"{rel_l2:.4e}",
+        "Evaluation Points": str(n_points),
+    })
+
+
+@app.command()
+def compare():
+    """Rank all runs of this experiment by their recorded metrics."""
+    compare_runs(EXPERIMENT)
 
 
 if __name__ == "__main__":

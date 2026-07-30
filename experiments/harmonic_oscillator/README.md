@@ -102,7 +102,7 @@ From the repository root:
 
 ```bash
 uv sync --all-packages
-uv run train-harmonic          # train with defaults
+uv run train-harmonic train          # train with defaults
 ```
 
 Or run the module directly:
@@ -114,7 +114,7 @@ uv run python experiments/harmonic_oscillator/train.py
 ### CLI reference
 
 ```
-uv run train-harmonic [OPTIONS]
+uv run train-harmonic train [OPTIONS]
 ```
 
 | Option | Short | Type | Default | Description |
@@ -133,13 +133,38 @@ uv run train-harmonic [OPTIONS]
 
 ```bash
 # Faster, lower-frequency sanity check
-uv run train-harmonic -e 5000 --w0 20
+uv run train-harmonic train -e 5000 --w0 20
 
 # Bigger network, custom artifact directory, headless
-uv run train-harmonic -n 64 -l 4 -o results/harmonic --no-show
+uv run train-harmonic train -n 64 -l 4 -o results/harmonic --no-show
 
 # Heavier damping, different seed
-uv run train-harmonic -d 10 --w0 40 --seed 7
+uv run train-harmonic train -d 10 --w0 40 --seed 7
+```
+
+### Working with trained models
+
+The CLI is multi-command — `train`, `predict`, and `compare`:
+
+```bash
+# Re-evaluate a trained model without retraining (defaults to the LATEST run)
+uv run train-harmonic predict
+uv run train-harmonic predict --run outputs/harmonic_oscillator/<timestamp> --no-show
+# -> writes predictions.npz + prediction.png into the run directory
+
+# Rank all runs by final loss (reads each run's metrics.json)
+uv run train-harmonic compare
+```
+
+Checkpoints are **self-describing**: the run config is stored inside
+`checkpoint.pt`, so `predict` rebuilds the exact architecture automatically —
+no hyperparameters to remember. Programmatic use:
+
+```python
+from experiments.common import find_latest_run, load_model
+from experiments.harmonic_oscillator.train import build_model
+
+model, config = load_model(find_latest_run("harmonic_oscillator"), build_model)
 ```
 
 ---
