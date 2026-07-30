@@ -98,6 +98,24 @@ The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/
 - `set_seed` / `setup_logging` — reproducibility and loguru console+file logging
 - `utils.plotting` — contour, 1D-comparison, and loss-comparison plots (headless-safe)
 
+## Testing
+
+```bash
+uv run pytest              # fast suite: unit + CLI smoke tests (~5s)
+uv run pytest -m slow      # convergence regression tests (train real PINNs)
+uv run ruff check .        # lint
+```
+
+Layout:
+
+- `libs/pinn/tests/` — library unit tests: network shapes/gradients, trainer mechanics
+  (weighted losses, early stopping, grad clipping, callbacks), checkpoint round-trip,
+  seeding, headless plotting
+- `tests/test_experiments_cli.py` — full `train → predict → compare` lifecycle per experiment
+  via Typer's in-process `CliRunner`, asserting every artifact is written
+- `tests/test_convergence.py` — marked `slow`: solves `u' = -u` against the exact solution
+  (rel-L2 < 5%) and checks the harmonic Ansatz pipeline drops its loss by 100×
+
 ## References
 
 - Raissi, Perdikaris, Karniadakis (2019). *Physics-informed neural networks.* J. Comput. Phys. 378.

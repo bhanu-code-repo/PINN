@@ -31,7 +31,15 @@ module-root = ""
 
 [dependency-groups]
 dev = [
+    "pytest>=8.0",
     "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "libs/pinn/tests"]
+addopts = "-m 'not slow' -q"
+markers = [
+    "slow: long-running convergence tests (run with: uv run pytest -m slow)",
 ]
 
 [tool.ruff]
