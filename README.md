@@ -28,7 +28,10 @@ PINN/
 ├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
-│   └── 03_schrodinger_analysis.ipynb # Complex fields, periodic BCs
+│   ├── 03_schrodinger_analysis.ipynb # Complex fields, periodic BCs
+│   └── 04_model_as_solution.ipynb    # Prediction: derivatives, residual check, extrapolation
+├── docs/
+│   └── prediction.md             # Concept: how prediction works in a PINN
 ├── pyproject.toml                # Workspace root + console scripts
 └── uv.lock
 ```
@@ -69,6 +72,11 @@ uv run train-harmonic compare            # rank all runs by their recorded metri
 Each CLI also provides `predict` (re-evaluate a saved model — defaults to the latest run;
 checkpoints are self-describing, so the architecture is rebuilt automatically from the stored
 config) and `compare` (rank all runs of an experiment by their `metrics.json`).
+
+For what "prediction" actually means for a PINN — the model *is* the solution function — see
+[docs/prediction.md](docs/prediction.md) and the hands-on demonstration in
+[notebooks/04_model_as_solution.ipynb](notebooks/04_model_as_solution.ipynb) (mesh-free
+evaluation, autograd derivatives, residual self-check, extrapolation failure mode).
 
 ## Adding a New Experiment
 

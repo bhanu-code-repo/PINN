@@ -123,6 +123,11 @@ from experiments.burgers.train import build_model
 model, config = load_model(find_latest_run("burgers"), build_model)
 ```
 
+> **What does "prediction" mean for a PINN?** The trained model *is* the solution function —
+> see [docs/prediction.md](../../docs/prediction.md) for the concept and
+> [notebooks/04_model_as_solution.ipynb](../../notebooks/04_model_as_solution.ipynb) for a
+> hands-on demonstration (derivatives via autograd, residual self-check, extrapolation limits).
+
 ---
 
 ## 4. Output
