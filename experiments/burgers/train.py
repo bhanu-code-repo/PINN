@@ -1,41 +1,117 @@
 #!/usr/bin/env python3
+"""Burgers' Equation PINN training CLI.
+
+Trains a Physics-Informed Neural Network to solve the 1D viscous Burgers'
+equation ``u_t + u*u_x - nu*u_xx = 0`` with ``u(0,x) = -sin(pi*x)`` and
+homogeneous Dirichlet boundaries — the classic shock-formation benchmark
+from Raissi et al. (2019).
+
+Every run writes a self-contained artifact directory (checkpoint, metrics,
+plots, logs). See the README in this directory for the full methodology.
 """
-Burgers' Equation PINN Training Script
 
-This script trains a Physics-Informed Neural Network (PINN) to solve the
-1D Burgers' equation:
-    u_t + u*u_x - nu*u_xx = 0
-
-This equation is a classic example of a hyperbolic conservation law that forms
-sharp shocks, which are notoriously difficult for traditional numerical methods.
-"""
-
-import torch
-import torch.nn as nn
-import torch.autograd as autograd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.autograd as autograd
+import torch.nn as nn
 import typer
-from rich.console import Console
-from rich.table import Table
-from pyfiglet import Figlet
-from typing import Optional
+from loguru import logger
+from pinn import PINN, PINNTrainer, plot_contour
 
-# Import from your local library
-from pinn.core.network import PINN
-from pinn.trainer.trainer import PINNTrainer
+from experiments.common import init_run, print_summary, save_metrics, show_banner
 
-# Initialize Rich console
-console = Console()
 app = typer.Typer(help="Train a PINN for Burgers' Equation.")
 
-def show_banner():
-    """Display a startup banner using pyfiglet and rich."""
-    f = Figlet(font="slant")
-    banner_text = f.renderText("BURGERS")
-    console.print(f"[bold cyan]{banner_text}[/bold cyan]")
-    console.print("[bold yellow]1D Burgers' Equation PINN Solver[/bold yellow]")
-    console.print("=" * 50)
+EXPERIMENT = "burgers"
+X_DOMAIN = (-1.0, 1.0)
+T_DOMAIN = (0.0, 1.0)
+
+
+def build_losses(nu: float, device: torch.device) -> dict:
+    """Create the named loss functions (closures own their collocation points)."""
+    x_ic = torch.linspace(*X_DOMAIN, 100).view(-1, 1).to(device)
+    t_bc = torch.linspace(*T_DOMAIN, 50).view(-1, 1).to(device)
+
+    x_physics = torch.rand(5000, 1) * (X_DOMAIN[1] - X_DOMAIN[0]) + X_DOMAIN[0]
+    t_physics = torch.rand(5000, 1) * (T_DOMAIN[1] - T_DOMAIN[0]) + T_DOMAIN[0]
+    x_physics = x_physics.to(device).requires_grad_(True)
+    t_physics = t_physics.to(device).requires_grad_(True)
+
+    def pde_residual(model, x, t):
+        u = model(torch.cat([x, t], dim=1))
+        u_t = autograd.grad(u, t, torch.ones_like(u), create_graph=True)[0]
+        u_x = autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
+        u_xx = autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
+        return u_t + u * u_x - nu * u_xx
+
+    def ic_loss(model):
+        u = model(torch.cat([x_ic, torch.zeros_like(x_ic)], dim=1))
+        u_exact = -torch.sin(np.pi * x_ic)
+        return torch.mean((u - u_exact) ** 2)
+
+    def bc_loss(model):
+        u_left = model(torch.cat([-torch.ones_like(t_bc), t_bc], dim=1))
+        u_right = model(torch.cat([torch.ones_like(t_bc), t_bc], dim=1))
+        return torch.mean(u_left**2 + u_right**2)
+
+    def physics_loss(model):
+        return torch.mean(pde_residual(model, x_physics, t_physics) ** 2)
+
+    return {"ic": ic_loss, "bc": bc_loss, "physics": physics_loss}
+
+
+def evaluate(model: nn.Module, device: torch.device) -> tuple[dict, dict]:
+    """Evaluate on a test grid and at the t=0 / t=1 snapshots.
+
+    Returns:
+        ``(metrics, arrays)`` where ``arrays`` holds everything needed for plots.
+    """
+    n_grid = 200
+    x_test = torch.linspace(*X_DOMAIN, n_grid).view(-1, 1).to(device)
+    t_test = torch.linspace(*T_DOMAIN, n_grid).view(-1, 1).to(device)
+    X, T = torch.meshgrid(x_test.squeeze(), t_test.squeeze(), indexing="ij")
+
+    with torch.no_grad():
+        xt_test = torch.stack([X.flatten(), T.flatten()], dim=1)
+        u_grid = model(xt_test).cpu().numpy().reshape(n_grid, n_grid)
+        u_pinn_0 = model(torch.cat([x_test, torch.zeros_like(x_test)], dim=1)).cpu().numpy()
+        u_pinn_1 = model(torch.cat([x_test, torch.ones_like(x_test)], dim=1)).cpu().numpy()
+
+    x_np = x_test.cpu().numpy()
+    u_exact_0 = -np.sin(np.pi * x_np)
+    rel_l2_ic = float(np.linalg.norm(u_pinn_0 - u_exact_0) / np.linalg.norm(u_exact_0))
+
+    metrics = {"relative_l2_error_t0": rel_l2_ic}
+    arrays = {
+        "X": X.cpu().numpy(), "T": T.cpu().numpy(), "u_grid": u_grid,
+        "x": x_np, "u_pinn_0": u_pinn_0, "u_pinn_1": u_pinn_1, "u_exact_0": u_exact_0,
+    }
+    return metrics, arrays
+
+
+def make_snapshot_plot(arrays: dict, save_path: str, show: bool) -> None:
+    """Side-by-side t=0 (vs exact IC) and t=1 (shock) snapshots."""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    axes[0].plot(arrays["x"], arrays["u_exact_0"], "k-", label="Exact (t=0)", linewidth=2)
+    axes[0].plot(arrays["x"], arrays["u_pinn_0"], "r--", label="PINN (t=0)", linewidth=2)
+    axes[0].set(title="Snapshot at t = 0", xlabel="x", ylabel="u(0,x)")
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    axes[1].plot(arrays["x"], arrays["u_pinn_1"], "r-", label="PINN (t=1)", linewidth=2)
+    axes[1].set(title="Snapshot at t = 1 (Steep Shock Formed)", xlabel="x", ylabel="u(1,x)")
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    logger.info("Plot saved to {}", save_path)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
 
 def solve_burgers_equation(
     epochs: int = 30000,
@@ -43,156 +119,69 @@ def solve_burgers_equation(
     hidden_neurons: int = 50,
     hidden_layers: int = 5,
     nu: float = 0.01 / np.pi,
-    save_plot: bool = False,
-    plot_path: Optional[str] = None,
-):
+    seed: int = 42,
+    output_dir: str | None = None,
+    show: bool = True,
+) -> dict:
+    """Train, evaluate, and persist a Burgers' equation PINN run.
+
+    Artifacts written to the run directory: ``checkpoint.pt``,
+    ``metrics.json``, ``loss_history.png``, ``solution_contour.png``,
+    ``snapshots.png``, ``logs/``.
+
+    Returns:
+        The metrics dict (also saved as ``metrics.json``).
     """
-    Trains a PINN to solve the 1D Burgers' equation.
-    
-    Args:
-        epochs: Number of training epochs.
-        lr: Learning rate for the optimizer.
-        hidden_neurons: Number of neurons per hidden layer.
-        hidden_layers: Number of hidden layers.
-        nu: Viscosity coefficient.
-        save_plot: Whether to save the final plot to disk.
-        plot_path: Path to save the plot (if save_plot is True).
-    """
-    
-    # 1. Problem Setup
-    x_domain = (-1.0, 1.0)
-    t_domain = (0.0, 1.0)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    run_dir, device = init_run(EXPERIMENT, output_dir, seed)
 
-    # 2. Define the PDE Residual
-    def pde_residual(model, x, t):
-        xt = torch.cat([x, t], dim=1)
-        u = model(xt)
-        
-        u_t = autograd.grad(u, t, torch.ones_like(u), create_graph=True)[0]
-        u_x = autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
-        u_xx = autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
-        
-        return u_t + u * u_x - nu * u_xx
+    config = {
+        "epochs": epochs, "lr": lr, "hidden_neurons": hidden_neurons,
+        "hidden_layers": hidden_layers, "nu": nu, "seed": seed,
+    }
+    logger.info("Config: {}", config)
 
-    # 3. Define Loss Functions
-    x_ic = torch.linspace(x_domain[0], x_domain[1], 100).view(-1, 1).to(device).requires_grad_(True)
-    t_bc = torch.linspace(t_domain[0], t_domain[1], 50).view(-1, 1).to(device).requires_grad_(True)
-    
-    x_physics = torch.rand(5000, 1) * (x_domain[1] - x_domain[0]) + x_domain[0]
-    t_physics = torch.rand(5000, 1) * (t_domain[1] - t_domain[0]) + t_domain[0]
-    x_physics = x_physics.to(device).requires_grad_(True)
-    t_physics = t_physics.to(device).requires_grad_(True)
-
-    def ic_loss(model):
-        xt = torch.cat([x_ic, torch.zeros_like(x_ic)], dim=1)
-        u = model(xt)
-        u_exact = -torch.sin(np.pi * x_ic)
-        return torch.mean((u - u_exact)**2)
-
-    def bc_loss(model):
-        xt_left = torch.cat([-torch.ones_like(t_bc), t_bc], dim=1)
-        u_left = model(xt_left)
-        xt_right = torch.cat([torch.ones_like(t_bc), t_bc], dim=1)
-        u_right = model(xt_right)
-        return torch.mean(u_left**2 + u_right**2)
-
-    def physics_loss(model):
-        return torch.mean(pde_residual(model, x_physics, t_physics)**2)
-
-    # 4. Create Model and Trainer
-    console.print("[bold cyan]Building Neural Network...[/bold cyan]")
-    console.print(f"    - Input Dim: 2 (x, t)")
-    console.print(f"    - Hidden Layers: {hidden_layers}")
-    console.print(f"    - Neurons per Layer: {hidden_neurons}")
-    
+    # 1. Model, losses, trainer
     model = PINN(input_dim=2, hidden_layers=hidden_layers, hidden_neurons=hidden_neurons)
+    loss_functions = build_losses(nu, device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     trainer = PINNTrainer(model, device=device)
-    
-    # 5. Train the Model
-    console.print(f"[bold green]Starting Training for {epochs} epochs...[/bold green]")
-    
-    trainer.train(n_epochs=epochs, optimizer=optimizer,
-                  loss_functions={'ic': ic_loss, 'bc': bc_loss, 'physics': physics_loss},
-                  weights={'ic': 1.0, 'bc': 1.0, 'physics': 1.0})
-    
-    console.print("[bold green]Training Complete![/bold green]")
 
-    # 6. Visualize Results (Contour Plot)
-    x_test = torch.linspace(x_domain[0], x_domain[1], 200).view(-1, 1).to(device)
-    t_test = torch.linspace(t_domain[0], t_domain[1], 200).view(-1, 1).to(device)
-    X, T = torch.meshgrid(x_test.squeeze(), t_test.squeeze(), indexing='ij')
-    
-    with torch.no_grad():
-        xt_test = torch.stack([X.flatten(), T.flatten()], dim=1)
-        u_pred = model(xt_test).cpu().numpy().reshape(200, 200)
-    
-    plt.figure(figsize=(10, 6))
-    plt.contourf(T.cpu().numpy(), X.cpu().numpy(), u_pred, 20, cmap='viridis')
-    plt.colorbar(label='u(t,x)')
-    plt.xlabel('t')
-    plt.ylabel('x')
-    plt.title("PINN Solution for Burgers' Equation")
-    
-    if save_plot and plot_path:
-        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-        console.print(f"[bold green]Contour plot saved to: {plot_path}[/bold green]")
-    
-    plt.show()
+    # 2. Train
+    trainer.train(n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions)
+    trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
+    trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
 
-    # 7. Validation Test (Snapshots at t=0 and t=1)
-    console.print("\n[bold cyan]Running Validation Tests...[/bold cyan]")
-    
-    with torch.no_grad():
-        xt_0 = torch.cat([x_test, torch.zeros_like(x_test)], dim=1)
-        xt_1 = torch.cat([x_test, torch.ones_like(x_test)], dim=1)
-        u_pinn_0 = model(xt_0).cpu().numpy()
-        u_pinn_1 = model(xt_1).cpu().numpy()
+    # 3. Evaluate
+    metrics, arrays = evaluate(model, device)
+    final = trainer.loss_history[-1]
+    metrics.update({
+        "final_total_loss": final["total"],
+        "final_ic_loss": final["ic"],
+        "final_bc_loss": final["bc"],
+        "final_physics_loss": final["physics"],
+        "epochs_run": len(trainer.loss_history),
+    })
+    save_metrics({"config": config, "metrics": metrics}, run_dir)
 
-    u_exact_0 = -np.sin(np.pi * x_test.cpu().numpy())
+    # 4. Plots and summary
+    plot_contour(
+        arrays["T"], arrays["X"], arrays["u_grid"],
+        title="PINN Solution for Burgers' Equation",
+        xlabel="t", ylabel="x", clabel="u(t,x)",
+        save_path=str(run_dir / "solution_contour.png"), show=show,
+    )
+    make_snapshot_plot(arrays, str(run_dir / "snapshots.png"), show)
+    print_summary("Training Summary", {
+        "Final Total Loss": f"{metrics['final_total_loss']:.4e}",
+        "Final IC Loss": f"{metrics['final_ic_loss']:.4e}",
+        "Final BC Loss": f"{metrics['final_bc_loss']:.4e}",
+        "Final Physics Loss": f"{metrics['final_physics_loss']:.4e}",
+        "Relative L2 Error (t=0)": f"{metrics['relative_l2_error_t0']:.4e}",
+        "Epochs Run": str(metrics["epochs_run"]),
+        "Artifacts": str(run_dir),
+    })
+    return metrics
 
-    plt.figure(figsize=(12, 5))
-
-    # Plot Initial Condition (t=0)
-    plt.subplot(1, 2, 1)
-    plt.plot(x_test.cpu().numpy(), u_exact_0, 'k-', label='Exact (t=0)', linewidth=2)
-    plt.plot(x_test.cpu().numpy(), u_pinn_0, 'r--', label='PINN (t=0)', linewidth=2)
-    plt.title("Snapshot at t = 0")
-    plt.xlabel('x')
-    plt.ylabel('u(0, x)')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    # Plot Final State (t=1) - Shock formation
-    plt.subplot(1, 2, 2)
-    plt.plot(x_test.cpu().numpy(), u_pinn_1, 'r-', label='PINN (t=1)', linewidth=2)
-    plt.title("Snapshot at t = 1 (Steep Shock Formed)")
-    plt.xlabel('x')
-    plt.ylabel('u(1, x)')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    
-    if save_plot and plot_path:
-        # Save the validation plot with a suffix
-        val_path = plot_path.replace('.png', '_validation.png')
-        plt.savefig(val_path, dpi=300, bbox_inches='tight')
-        console.print(f"[bold green]Validation plot saved to: {val_path}[/bold green]")
-    
-    plt.show()
-
-    # 8. Print a summary table
-    table = Table(title="Training Summary")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="magenta")
-    table.add_row("Final Total Loss", f"{trainer.loss_history[-1]['total']:.4e}")
-    table.add_row("Final IC Loss", f"{trainer.loss_history[-1]['ic']:.4e}")
-    table.add_row("Final BC Loss", f"{trainer.loss_history[-1]['bc']:.4e}")
-    table.add_row("Final Physics Loss", f"{trainer.loss_history[-1]['physics']:.4e}")
-    table.add_row("Epochs Run", str(len(trainer.loss_history)))
-    console.print(table)
 
 @app.command()
 def train(
@@ -201,22 +190,26 @@ def train(
     neurons: int = typer.Option(50, "--neurons", "-n", help="Neurons per hidden layer."),
     layers: int = typer.Option(5, "--layers", "-l", help="Number of hidden layers."),
     nu: float = typer.Option(0.01 / np.pi, "--nu", help="Viscosity coefficient."),
-    save_plot: bool = typer.Option(False, "--save-plot", help="Save the final plots to disk."),
-    plot_path: Optional[str] = typer.Option(None, "--plot-path", help="Path to save the plots."),
+    seed: int = typer.Option(42, "--seed", help="Random seed for reproducibility."),
+    output_dir: str | None = typer.Option(
+        None, "--output-dir", "-o",
+        help="Artifact directory (default: outputs/burgers/<timestamp>).",
+    ),
+    show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
 ):
-    """
-    Train a PINN to solve the 1D Burgers' equation.
-    """
-    show_banner()
+    """Train a PINN to solve the 1D Burgers' equation."""
+    show_banner("BURGERS", "1D Burgers' Equation PINN Solver")
     solve_burgers_equation(
         epochs=epochs,
         lr=lr,
         hidden_neurons=neurons,
         hidden_layers=layers,
         nu=nu,
-        save_plot=save_plot,
-        plot_path=plot_path,
+        seed=seed,
+        output_dir=output_dir,
+        show=show,
     )
+
 
 if __name__ == "__main__":
     app()

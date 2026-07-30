@@ -84,8 +84,9 @@ uv run train-burgers [OPTIONS]
 | `--neurons` | `-n` | int | `50` | Neurons per hidden layer |
 | `--layers` | `-l` | int | `5` | Number of hidden layers |
 | `--nu` | | float | `0.01/π` | Viscosity coefficient |
-| `--save-plot` | | flag | off | Save the final plots |
-| `--plot-path` | | str | `None` | Output path for plots (used with `--save-plot`) |
+| `--seed` | | int | `42` | Random seed for reproducibility |
+| `--output-dir` | `-o` | str | auto | Artifact directory (default: `outputs/burgers/<timestamp>`) |
+| `--show/--no-show` | | flag | `--show` | Display plots interactively (`--no-show` for headless runs) |
 
 ### Examples
 
@@ -93,23 +94,32 @@ uv run train-burgers [OPTIONS]
 # Quick smoke test with a smoother (more viscous) solution
 uv run train-burgers -e 5000 --nu 0.1
 
-# Full run, saving figures
-uv run train-burgers --save-plot --plot-path results/burgers.png
-# -> writes results/burgers.png and results/burgers_validation.png
+# Full run, custom artifact directory, headless
+uv run train-burgers -o results/burgers --no-show
 ```
 
 ---
 
 ## 4. Output
 
-1. **Live loss plot** — `ic`, `bc`, `physics` curves on a log scale during training.
-2. **Contour plot** — `u(t, x)` over the full space-time domain (200×200 grid). The shock appears as a sharp colour transition along `x = 0` for `t ≳ 0.4`.
-3. **Validation snapshots**:
-   - `t = 0`: PINN vs. exact `−sin(πx)` (checks the IC was learned)
-   - `t = 1`: PINN profile showing the fully-formed steep shock
-4. **Summary table** — final total/ic/bc/physics losses and epochs run.
+Every run writes a **self-contained artifact directory** (default
+`outputs/burgers/<timestamp>`, override with `-o`):
 
-With `--save-plot --plot-path <p>.png`, the validation figure is saved alongside as `<p>_validation.png`.
+```
+<run-dir>/
+├── checkpoint.pt           # model + optimizer state, loss history, run config
+├── metrics.json            # config + final losses + rel-L2 error at t=0
+├── loss_history.png        # ic / bc / physics curves, log scale
+├── solution_contour.png    # u(t,x) over the full space-time domain
+├── snapshots.png           # t=0 (vs exact IC) and t=1 (shock) profiles
+└── logs/run_*.log          # full DEBUG-level training log (loguru)
+```
+
+What to look for:
+
+1. **Contour plot** — the shock appears as a sharp colour transition along `x = 0` for `t ≳ 0.4`.
+2. **Snapshots** — `t = 0` must match `−sin(πx)`; `t = 1` shows the fully-formed steep shock.
+3. **Summary table** — final total/ic/bc/physics losses, rel-L2 error at `t=0`, epochs run.
 
 ---
 
@@ -121,7 +131,7 @@ With `--save-plot --plot-path <p>.png`, the validation figure is saved alongside
 | `t = 0` snapshot doesn't match `−sin(πx)` | Physics loss dominating the IC early | Raise the `ic` weight in `solve_burgers_equation` |
 | Loss oscillates late in training | Adam lr too high for the sharpening solution | Lower `--lr` (e.g. `5e-4`), or add `grad_clip` in the `trainer.train` call |
 | Very low `--nu` diverges | Shock too sharp for the network capacity | Increase `-n`/`-l`, or keep `ν ≥ 0.01/π` |
-| No plot window appears | Headless environment | `--save-plot --plot-path out.png`, or `MPLBACKEND=Agg` |
+| No plot window appears | Headless environment | Run with `--no-show` — all plots are saved to the run directory anyway |
 
 ---
 

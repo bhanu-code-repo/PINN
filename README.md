@@ -68,10 +68,10 @@ uv run train-harmonic            # train with defaults
 
 1. Create `experiments/<name>/` with `__init__.py` and a `train.py` exposing a Typer `app`.
 2. Define the problem: collocation points, residual via `torch.autograd.grad`, IC/BC losses.
-3. Build on the shared library:
+3. Build on the shared library and experiment infrastructure:
    ```python
-   from pinn.core.network import PINN
-   from pinn.trainer.trainer import PINNTrainer
+   from pinn import PINN, PINNTrainer
+   from experiments.common import init_run, print_summary, save_metrics, show_banner
    ```
 4. Register a console script in the root `pyproject.toml`:
    ```toml
@@ -80,13 +80,17 @@ uv run train-harmonic            # train with defaults
    ```
 5. Re-sync: `uv sync --all-packages`.
 
+Every experiment run writes a self-contained artifact directory under `outputs/`
+(checkpoint, `metrics.json`, plots, loguru logs) — see any experiment README for details.
+
 ## Core Library
 
-The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/pinn/README.md). Highlights:
+The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/pinn/README.md) — including a "solve your own equation in 5 steps" quickstart and a scaling guide. Highlights:
 
 - `PINN` — configurable `tanh` MLP for smooth higher-order derivatives
-- `PINNTrainer` — named multi-term losses with per-term weights, live log-scale loss plotting, early stopping, gradient clipping, full loss history
-- `utils.plotting` — contour, 1D-comparison, and loss-comparison plots
+- `PINNTrainer` — named multi-term losses with per-term weights, early stopping, gradient clipping, per-epoch callbacks, checkpoint save/load, full loss history
+- `set_seed` / `setup_logging` — reproducibility and loguru console+file logging
+- `utils.plotting` — contour, 1D-comparison, and loss-comparison plots (headless-safe)
 
 ## References
 

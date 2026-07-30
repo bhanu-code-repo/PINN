@@ -221,3 +221,6 @@ __marimo__/
 .workspace/
 research/*
 !research/README.md
+
+# Experiment run artifacts
+outputs/

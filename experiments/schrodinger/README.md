@@ -99,8 +99,9 @@ uv run train-schrodinger [OPTIONS]
 | `--lr` | | float | `5e-4` | Adam learning rate |
 | `--neurons` | `-n` | int | `100` | Neurons per hidden layer |
 | `--layers` | `-l` | int | `4` | Number of hidden layers |
-| `--save-plot` | | flag | off | Save the final plots |
-| `--plot-path` | | str | `None` | Output path for plots (used with `--save-plot`) |
+| `--seed` | | int | `42` | Random seed for reproducibility |
+| `--output-dir` | `-o` | str | auto | Artifact directory (default: `outputs/schrodinger/<timestamp>`) |
+| `--show/--no-show` | | flag | `--show` | Display plots interactively (`--no-show` for headless runs) |
 
 ### Examples
 
@@ -108,21 +109,32 @@ uv run train-schrodinger [OPTIONS]
 # Quick smoke test
 uv run train-schrodinger -e 5000 -n 50
 
-# Full run, saving figures
-uv run train-schrodinger --save-plot --plot-path results/nls.png
-# -> writes results/nls.png and results/nls_validation.png
+# Full run, custom artifact directory, headless
+uv run train-schrodinger -o results/nls --no-show
 ```
 
 ---
 
 ## 4. Output
 
-1. **Live loss plot** — `ic`, `bc`, `physics` curves on a log scale during training.
-2. **Contour plot** — solution magnitude `|h(t, x)|` on a 200×100 space-time grid. Expect the soliton to breathe: amplitude focusing near `t ≈ π/4`.
-3. **Validation snapshot** — `|h(0, x)|` vs. the exact `2·sech(x)` initial condition.
-4. **Summary table** — final total/ic/bc/physics losses and epochs run.
+Every run writes a **self-contained artifact directory** (default
+`outputs/schrodinger/<timestamp>`, override with `-o`):
 
-With `--save-plot --plot-path <p>.png`, the validation figure is saved alongside as `<p>_validation.png`.
+```
+<run-dir>/
+├── checkpoint.pt           # model + optimizer state, loss history, run config
+├── metrics.json            # config + final losses + rel-L2 at t=0 + peak |h|
+├── loss_history.png        # ic / bc / physics curves, log scale
+├── solution_contour.png    # |h(t,x)| over the full space-time domain
+├── snapshots.png           # t=0 (vs exact IC) and t=pi/4 (breathing peak)
+└── logs/run_*.log          # full DEBUG-level training log (loguru)
+```
+
+What to look for:
+
+1. **Contour plot** — expect the soliton to breathe: amplitude focusing near `t ≈ π/4`.
+2. **Snapshots** — `|h(0, x)|` must match `2·sech(x)`; the `t = π/4` peak should exceed the initial max of 2.
+3. **Summary table** — final losses, rel-L2 at `t=0`, peak `|h|`, epochs run.
 
 ---
 
@@ -134,7 +146,7 @@ With `--save-plot --plot-path <p>.png`, the validation figure is saved alongside
 | IC snapshot off from `2·sech(x)` | IC loss under-weighted relative to 5000-point physics loss | Raise the `ic` weight |
 | Boundary seams in the contour plot | Periodic BC not converged | Raise the `bc` weight, or add more `t_bc` points in `train.py` |
 | Loss spikes / NaN | lr too high for the nonlinear term | Lower `--lr` (e.g. `1e-4`), or pass `grad_clip` to `trainer.train` |
-| No plot window appears | Headless environment | `--save-plot --plot-path out.png`, or `MPLBACKEND=Agg` |
+| No plot window appears | Headless environment | Run with `--no-show` — all plots are saved to the run directory anyway |
 
 ---
 

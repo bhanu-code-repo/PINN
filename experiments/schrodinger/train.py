@@ -1,211 +1,231 @@
 #!/usr/bin/env python3
+"""Schrödinger Equation PINN training CLI.
+
+Trains a Physics-Informed Neural Network to solve the 1D focusing nonlinear
+Schrödinger equation ``i*h_t + 0.5*h_xx + |h|^2*h = 0`` with the
+``2*sech(x)`` soliton initial condition and periodic boundary conditions.
+The complex field is represented as two real output channels
+``h = u + i*v``.
+
+Every run writes a self-contained artifact directory (checkpoint, metrics,
+plots, logs). See the README in this directory for the full methodology.
 """
-Schrödinger Equation PINN Training Script
 
-This script trains a Physics-Informed Neural Network (PINN) to solve the
-1D nonlinear Schrödinger equation:
-    i*h_t + 0.5*h_xx + |h|^2*h = 0
-
-This equation describes wave propagation in nonlinear media, such as optical
-fibers and Bose-Einstein condensates. The PINN handles complex-valued solutions
-and periodic boundary conditions.
-"""
-
-import torch
-import torch.nn as nn
-import torch.autograd as autograd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.autograd as autograd
+import torch.nn as nn
 import typer
-from rich.console import Console
-from rich.table import Table
-from pyfiglet import Figlet
-from typing import Optional
+from loguru import logger
+from pinn import PINN, PINNTrainer, plot_contour
 
-# Import from your local library
-from pinn.core.network import PINN
-from pinn.trainer.trainer import PINNTrainer
+from experiments.common import init_run, print_summary, save_metrics, show_banner
 
-# Initialize Rich console
-console = Console()
 app = typer.Typer(help="Train a PINN for the Schrödinger Equation.")
 
-def show_banner():
-    """Display a startup banner using pyfiglet and rich."""
-    f = Figlet(font="slant")
-    banner_text = f.renderText("SCHRODINGER")
-    console.print(f"[bold cyan]{banner_text}[/bold cyan]")
-    console.print("[bold yellow]1D Nonlinear Schrödinger Equation PINN Solver[/bold yellow]")
-    console.print("=" * 50)
+EXPERIMENT = "schrodinger"
+X_DOMAIN = (-5.0, 5.0)
+T_DOMAIN = (0.0, np.pi / 2)
 
-def solve_schrodinger_equation(
-    epochs: int = 25000,
-    lr: float = 5e-4,
-    hidden_neurons: int = 100,
-    hidden_layers: int = 4,
-    save_plot: bool = False,
-    plot_path: Optional[str] = None,
-):
-    """
-    Trains a PINN to solve the 1D nonlinear Schrödinger equation.
-    
-    Args:
-        epochs: Number of training epochs.
-        lr: Learning rate for the optimizer.
-        hidden_neurons: Number of neurons per hidden layer.
-        hidden_layers: Number of hidden layers.
-        save_plot: Whether to save the final plot to disk.
-        plot_path: Path to save the plot (if save_plot is True).
-    """
-    
-    # 1. Problem Setup
-    x_domain = (-5.0, 5.0)
-    t_domain = (0.0, np.pi/2)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # 2. Define the PDE Residual (Complex)
+class ComplexPINN(nn.Module):
+    """Two-output PINN returning ``(Re h, Im h)`` for a complex field ``h``."""
+
+    def __init__(self, input_dim: int, hidden_layers: int, hidden_neurons: int):
+        super().__init__()
+        self.network = PINN(input_dim, hidden_layers, hidden_neurons, output_dim=2)
+
+    def forward(self, x: torch.Tensor, t: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        out = self.network(torch.cat([x, t], dim=1))
+        return out[:, 0:1], out[:, 1:2]
+
+
+def build_losses(device: torch.device) -> dict:
+    """Create the named loss functions (closures own their collocation points)."""
+    x_ic = torch.linspace(*X_DOMAIN, 100).view(-1, 1).to(device).requires_grad_(True)
+    t_bc = torch.linspace(*T_DOMAIN, 50).view(-1, 1).to(device)
+
+    x_physics = torch.rand(5000, 1) * (X_DOMAIN[1] - X_DOMAIN[0]) + X_DOMAIN[0]
+    t_physics = torch.rand(5000, 1) * (T_DOMAIN[1] - T_DOMAIN[0]) + T_DOMAIN[0]
+    x_physics = x_physics.to(device).requires_grad_(True)
+    t_physics = t_physics.to(device).requires_grad_(True)
+
     def pde_residual(model, x, t):
-        u, v = model(x, t) # u and v are the real and imag parts
+        u, v = model(x, t)
         h = u + 1j * v
         h_conj = u - 1j * v
-        
-        # Gradients on real and imag parts
+
         u_t = autograd.grad(u, t, torch.ones_like(u), create_graph=True)[0]
         v_t = autograd.grad(v, t, torch.ones_like(v), create_graph=True)[0]
         u_x = autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
         v_x = autograd.grad(v, x, torch.ones_like(v), create_graph=True)[0]
         u_xx = autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
         v_xx = autograd.grad(v_x, x, torch.ones_like(v_x), create_graph=True)[0]
-        
-        # Combine into complex derivatives
+
         h_t = u_t + 1j * v_t
         h_xx = u_xx + 1j * v_xx
-        
-        # Residual: i*h_t + 0.5*h_xx + |h|^2*h = 0
-        f = 1j * h_t + 0.5 * h_xx + (h * h_conj) * h
-        return torch.mean(torch.abs(f)**2)
 
-    # 3. Define Loss Functions
-    x_ic = torch.linspace(x_domain[0], x_domain[1], 100).view(-1, 1).to(device).requires_grad_(True)
-    t_bc = torch.linspace(t_domain[0], t_domain[1], 50).view(-1, 1).to(device)
-    
-    # IMPROVEMENT: Increased collocation points from 2000 to 5000
-    x_physics = torch.rand(5000, 1) * (x_domain[1] - x_domain[0]) + x_domain[0]
-    t_physics = torch.rand(5000, 1) * (t_domain[1] - t_domain[0]) + t_domain[0]
-    x_physics = x_physics.to(device).requires_grad_(True)
-    t_physics = t_physics.to(device).requires_grad_(True)
+        f = 1j * h_t + 0.5 * h_xx + (h * h_conj) * h
+        return torch.mean(torch.abs(f) ** 2)
 
     def ic_loss(model):
         u, v = model(x_ic, torch.zeros_like(x_ic))
-        # IC: h(0, x) = 2 * sech(x)
-        h_exact = 2 / torch.cosh(x_ic)
-        return torch.mean((u - h_exact)**2 + v**2)
+        h_exact = 2 / torch.cosh(x_ic)  # h(0,x) = 2*sech(x), purely real
+        return torch.mean((u - h_exact) ** 2 + v**2)
 
     def bc_loss(model):
-        # Periodic BC: h(t, -5) = h(t, 5) and h_x(t, -5) = h_x(t, 5)
-        x_boundary_val_l = -5 * torch.ones_like(t_bc).requires_grad_(True)
-        x_boundary_val_r = 5 * torch.ones_like(t_bc).requires_grad_(True)
+        # Periodic BC on value and x-derivative: h(t,-5) = h(t,5), h_x(t,-5) = h_x(t,5)
+        x_l = X_DOMAIN[0] * torch.ones_like(t_bc).requires_grad_(True)
+        x_r = X_DOMAIN[1] * torch.ones_like(t_bc).requires_grad_(True)
 
-        u_l, v_l = model(x_boundary_val_l, t_bc)
-        u_r, v_r = model(x_boundary_val_r, t_bc)
-        
-        u_l_x = autograd.grad(u_l, x_boundary_val_l, torch.ones_like(u_l), create_graph=True)[0]
-        v_l_x = autograd.grad(v_l, x_boundary_val_l, torch.ones_like(v_l), create_graph=True)[0]
-        u_r_x = autograd.grad(u_r, x_boundary_val_r, torch.ones_like(u_r), create_graph=True)[0]
-        v_r_x = autograd.grad(v_r, x_boundary_val_r, torch.ones_like(v_r), create_graph=True)[0]
-        
-        loss_period = torch.mean((u_l - u_r)**2 + (v_l - v_r)**2)
-        loss_period_x = torch.mean((u_l_x - u_r_x)**2 + (v_l_x - v_r_x)**2)
-        return loss_period + loss_period_x
+        u_l, v_l = model(x_l, t_bc)
+        u_r, v_r = model(x_r, t_bc)
+
+        u_l_x = autograd.grad(u_l, x_l, torch.ones_like(u_l), create_graph=True)[0]
+        v_l_x = autograd.grad(v_l, x_l, torch.ones_like(v_l), create_graph=True)[0]
+        u_r_x = autograd.grad(u_r, x_r, torch.ones_like(u_r), create_graph=True)[0]
+        v_r_x = autograd.grad(v_r, x_r, torch.ones_like(v_r), create_graph=True)[0]
+
+        loss_value = torch.mean((u_l - u_r) ** 2 + (v_l - v_r) ** 2)
+        loss_deriv = torch.mean((u_l_x - u_r_x) ** 2 + (v_l_x - v_r_x) ** 2)
+        return loss_value + loss_deriv
 
     def physics_loss(model):
         return pde_residual(model, x_physics, t_physics)
 
-    # 4. Create Model
-    class ComplexPINN(nn.Module):
-        def __init__(self, input_dim, hidden_layers, hidden_neurons):
-            super().__init__()
-            self.network = PINN(input_dim, hidden_layers, hidden_neurons, output_dim=2)
-        def forward(self, x, t):
-            xt = torch.cat([x, t], dim=1)
-            out = self.network(xt)
-            return out[:, 0:1], out[:, 1:2]
+    return {"ic": ic_loss, "bc": bc_loss, "physics": physics_loss}
 
-    console.print("[bold cyan]Building Complex Neural Network...[/bold cyan]")
-    console.print(f"    - Input Dim: 2 (x, t)")
-    console.print(f"    - Hidden Layers: {hidden_layers}")
-    console.print(f"    - Neurons per Layer: {hidden_neurons}")
-    
-    model = ComplexPINN(input_dim=2, hidden_layers=hidden_layers, hidden_neurons=hidden_neurons)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    trainer = PINNTrainer(model, device=device)
-    
-    # 5. Train
-    console.print(f"[bold green]Starting Training for {epochs} epochs...[/bold green]")
-    
-    trainer.train(n_epochs=epochs, optimizer=optimizer,
-                  loss_functions={'ic': ic_loss, 'bc': bc_loss, 'physics': physics_loss},
-                  weights={'ic': 1.0, 'bc': 1.0, 'physics': 1.0})
-    
-    console.print("[bold green]Training Complete![/bold green]")
 
-    # 6. Visualize Results
-    x_test = torch.linspace(x_domain[0], x_domain[1], 200).view(-1, 1).to(device)
-    t_test = torch.linspace(t_domain[0], t_domain[1], 100).view(-1, 1).to(device)
-    X, T = torch.meshgrid(x_test.squeeze(), t_test.squeeze(), indexing='ij')
-    
+def evaluate(model: nn.Module, device: torch.device) -> tuple[dict, dict]:
+    """Evaluate |h| on a test grid, at t=0 (vs exact IC), and at the t=pi/4 peak.
+
+    Returns:
+        ``(metrics, arrays)`` where ``arrays`` holds everything needed for plots.
+    """
+    n_x, n_t = 200, 100
+    x_test = torch.linspace(*X_DOMAIN, n_x).view(-1, 1).to(device)
+    t_test = torch.linspace(*T_DOMAIN, n_t).view(-1, 1).to(device)
+    X, T = torch.meshgrid(x_test.squeeze(), t_test.squeeze(), indexing="ij")
+
     with torch.no_grad():
         u_pred, v_pred = model(X.flatten().unsqueeze(1), T.flatten().unsqueeze(1))
-        h_mag = torch.sqrt(u_pred**2 + v_pred**2).cpu().numpy().reshape(200, 100)
-    
-    plt.figure(figsize=(10, 6))
-    plt.contourf(T.cpu().numpy(), X.cpu().numpy(), h_mag, 20, cmap='viridis')
-    plt.colorbar(label='|h(t,x)|')
-    plt.xlabel('t')
-    plt.ylabel('x')
-    plt.title("PINN Solution Magnitude for Schrödinger Equation")
-    
-    if save_plot and plot_path:
-        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-        console.print(f"[bold green]Contour plot saved to: {plot_path}[/bold green]")
-    
-    plt.show()
+        h_mag = torch.sqrt(u_pred**2 + v_pred**2).cpu().numpy().reshape(n_x, n_t)
 
-    # 7. Validation Test (Snapshot at t=0)
-    console.print("\n[bold cyan]Running Validation Tests...[/bold cyan]")
-    
-    with torch.no_grad():
-        u_pred_0, v_pred_0 = model(x_test, torch.zeros_like(x_test))
-        h_mag_0 = torch.sqrt(u_pred_0**2 + v_pred_0**2).cpu().numpy()
-        
-    h_exact_0 = (2 / torch.cosh(x_test)).cpu().numpy()
+        u0, v0 = model(x_test, torch.zeros_like(x_test))
+        h_mag_0 = torch.sqrt(u0**2 + v0**2).cpu().numpy()
 
-    plt.figure(figsize=(10, 5))
-    plt.plot(x_test.cpu().numpy(), h_exact_0, 'k-', label='Exact (t=0)', linewidth=2)
-    plt.plot(x_test.cpu().numpy(), h_mag_0, 'r--', label='PINN (t=0)', linewidth=2)
-    plt.title("Comparison at t = 0 (Initial Condition)")
-    plt.xlabel('x')
-    plt.ylabel('|h(0,x)|')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    if save_plot and plot_path:
-        val_path = plot_path.replace('.png', '_validation.png')
-        plt.savefig(val_path, dpi=300, bbox_inches='tight')
-        console.print(f"[bold green]Validation plot saved to: {val_path}[/bold green]")
-    
-    plt.show()
+        t_peak = (np.pi / 4) * torch.ones_like(x_test)
+        up, vp = model(x_test, t_peak)
+        h_mag_peak = torch.sqrt(up**2 + vp**2).cpu().numpy()
 
-    # 8. Print a summary table
-    table = Table(title="Training Summary")
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="magenta")
-    table.add_row("Final Total Loss", f"{trainer.loss_history[-1]['total']:.4e}")
-    table.add_row("Final IC Loss", f"{trainer.loss_history[-1]['ic']:.4e}")
-    table.add_row("Final BC Loss", f"{trainer.loss_history[-1]['bc']:.4e}")
-    table.add_row("Final Physics Loss", f"{trainer.loss_history[-1]['physics']:.4e}")
-    table.add_row("Epochs Run", str(len(trainer.loss_history)))
-    console.print(table)
+    x_np = x_test.cpu().numpy()
+    h_exact_0 = 2 / np.cosh(x_np)
+    rel_l2_ic = float(np.linalg.norm(h_mag_0 - h_exact_0) / np.linalg.norm(h_exact_0))
+
+    metrics = {
+        "relative_l2_error_t0": rel_l2_ic,
+        "peak_magnitude_t_pi4": float(h_mag_peak.max()),
+    }
+    arrays = {
+        "X": X.cpu().numpy(), "T": T.cpu().numpy(), "h_mag": h_mag,
+        "x": x_np, "h_mag_0": h_mag_0, "h_exact_0": h_exact_0, "h_mag_peak": h_mag_peak,
+    }
+    return metrics, arrays
+
+
+def make_snapshot_plot(arrays: dict, save_path: str, show: bool) -> None:
+    """Side-by-side t=0 (vs exact IC) and t=pi/4 (breathing peak) snapshots."""
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    axes[0].plot(arrays["x"], arrays["h_exact_0"], "k-", label="Exact (t=0)", linewidth=2)
+    axes[0].plot(arrays["x"], arrays["h_mag_0"], "r--", label="PINN (t=0)", linewidth=2)
+    axes[0].set(title="Initial condition check", xlabel="x", ylabel="|h(0,x)|")
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    axes[1].plot(arrays["x"], arrays["h_mag_peak"], "b-", label="PINN (t=pi/4)", linewidth=2)
+    axes[1].set(title="Breathing peak near t = pi/4", xlabel="x", ylabel="|h(pi/4,x)|")
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    logger.info("Plot saved to {}", save_path)
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
+
+def solve_schrodinger_equation(
+    epochs: int = 25000,
+    lr: float = 5e-4,
+    hidden_neurons: int = 100,
+    hidden_layers: int = 4,
+    seed: int = 42,
+    output_dir: str | None = None,
+    show: bool = True,
+) -> dict:
+    """Train, evaluate, and persist a nonlinear Schrödinger PINN run.
+
+    Artifacts written to the run directory: ``checkpoint.pt``,
+    ``metrics.json``, ``loss_history.png``, ``solution_contour.png``,
+    ``snapshots.png``, ``logs/``.
+
+    Returns:
+        The metrics dict (also saved as ``metrics.json``).
+    """
+    run_dir, device = init_run(EXPERIMENT, output_dir, seed)
+
+    config = {
+        "epochs": epochs, "lr": lr, "hidden_neurons": hidden_neurons,
+        "hidden_layers": hidden_layers, "seed": seed,
+    }
+    logger.info("Config: {}", config)
+
+    # 1. Model, losses, trainer
+    model = ComplexPINN(input_dim=2, hidden_layers=hidden_layers, hidden_neurons=hidden_neurons)
+    loss_functions = build_losses(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    trainer = PINNTrainer(model, device=device)
+
+    # 2. Train
+    trainer.train(n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions)
+    trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
+    trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
+
+    # 3. Evaluate
+    metrics, arrays = evaluate(model, device)
+    final = trainer.loss_history[-1]
+    metrics.update({
+        "final_total_loss": final["total"],
+        "final_ic_loss": final["ic"],
+        "final_bc_loss": final["bc"],
+        "final_physics_loss": final["physics"],
+        "epochs_run": len(trainer.loss_history),
+    })
+    save_metrics({"config": config, "metrics": metrics}, run_dir)
+
+    # 4. Plots and summary
+    plot_contour(
+        arrays["T"], arrays["X"], arrays["h_mag"],
+        title="PINN Solution Magnitude for Schrödinger Equation",
+        xlabel="t", ylabel="x", clabel="|h(t,x)|",
+        save_path=str(run_dir / "solution_contour.png"), show=show,
+    )
+    make_snapshot_plot(arrays, str(run_dir / "snapshots.png"), show)
+    print_summary("Training Summary", {
+        "Final Total Loss": f"{metrics['final_total_loss']:.4e}",
+        "Final IC Loss": f"{metrics['final_ic_loss']:.4e}",
+        "Final BC Loss": f"{metrics['final_bc_loss']:.4e}",
+        "Final Physics Loss": f"{metrics['final_physics_loss']:.4e}",
+        "Relative L2 Error (t=0)": f"{metrics['relative_l2_error_t0']:.4e}",
+        "Peak |h| at t=pi/4": f"{metrics['peak_magnitude_t_pi4']:.3f}",
+        "Epochs Run": str(metrics["epochs_run"]),
+        "Artifacts": str(run_dir),
+    })
+    return metrics
+
 
 @app.command()
 def train(
@@ -213,21 +233,25 @@ def train(
     lr: float = typer.Option(5e-4, "--lr", help="Learning rate."),
     neurons: int = typer.Option(100, "--neurons", "-n", help="Neurons per hidden layer."),
     layers: int = typer.Option(4, "--layers", "-l", help="Number of hidden layers."),
-    save_plot: bool = typer.Option(False, "--save-plot", help="Save the final plots to disk."),
-    plot_path: Optional[str] = typer.Option(None, "--plot-path", help="Path to save the plots."),
+    seed: int = typer.Option(42, "--seed", help="Random seed for reproducibility."),
+    output_dir: str | None = typer.Option(
+        None, "--output-dir", "-o",
+        help="Artifact directory (default: outputs/schrodinger/<timestamp>).",
+    ),
+    show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
 ):
-    """
-    Train a PINN to solve the 1D nonlinear Schrödinger equation.
-    """
-    show_banner()
+    """Train a PINN to solve the 1D nonlinear Schrödinger equation."""
+    show_banner("SCHRODINGER", "1D Nonlinear Schrödinger Equation PINN Solver")
     solve_schrodinger_equation(
         epochs=epochs,
         lr=lr,
         hidden_neurons=neurons,
         hidden_layers=layers,
-        save_plot=save_plot,
-        plot_path=plot_path,
+        seed=seed,
+        output_dir=output_dir,
+        show=show,
     )
+
 
 if __name__ == "__main__":
     app()

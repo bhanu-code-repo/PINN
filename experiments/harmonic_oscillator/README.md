@@ -90,7 +90,7 @@ Derivatives `u'` and `u''` are computed exactly via `torch.autograd.grad` with `
 - Optimiser: Adam, `lr = 1e-3`
 - Epochs: `15000` (full-batch — all collocation points every step)
 - Device: CUDA if available, else CPU
-- Training loop: `pinn.trainer.PINNTrainer` (live loss plot, tqdm progress bar, loss history)
+- Training loop: `pinn.trainer.PINNTrainer` (tqdm progress bar, loguru logging, loss history, checkpointing)
 
 ---
 
@@ -125,8 +125,9 @@ uv run train-harmonic [OPTIONS]
 | `--layers` | `-l` | int | `3` | Number of hidden layers |
 | `--w0` | | float | `80.0` | Natural frequency |
 | `--damping` | `-d` | float | `2.0` | Damping coefficient |
-| `--save-plot` | | flag | off | Save the final comparison plot |
-| `--plot-path` | | str | `None` | Output path for the plot (used with `--save-plot`) |
+| `--seed` | | int | `42` | Random seed for reproducibility |
+| `--output-dir` | `-o` | str | auto | Artifact directory (default: `outputs/harmonic_oscillator/<timestamp>`) |
+| `--show/--no-show` | | flag | `--show` | Display plots interactively (`--no-show` for headless runs) |
 
 ### Examples
 
@@ -134,26 +135,38 @@ uv run train-harmonic [OPTIONS]
 # Faster, lower-frequency sanity check
 uv run train-harmonic -e 5000 --w0 20
 
-# Bigger network, save the result figure
-uv run train-harmonic -n 64 -l 4 --save-plot --plot-path results/harmonic.png
+# Bigger network, custom artifact directory, headless
+uv run train-harmonic -n 64 -l 4 -o results/harmonic --no-show
 
-# Heavier damping
-uv run train-harmonic -d 10 --w0 40
+# Heavier damping, different seed
+uv run train-harmonic -d 10 --w0 40 --seed 7
 ```
 
 ---
 
 ## 5. Output
 
-During and after training you get:
+Every run writes a **self-contained artifact directory** (default
+`outputs/harmonic_oscillator/<timestamp>`, override with `-o`):
 
-1. **Live loss plot** — per-term (`ic`, `physics`) loss curves on a log scale, refreshed every 1000 epochs.
-2. **Comparison plot** — PINN prediction (red) vs. analytical solution (black dashed) on 300 test points.
-3. **Summary table**:
+```
+<run-dir>/
+├── checkpoint.pt       # model + optimizer state, loss history, run config
+├── metrics.json        # config + quantitative metrics (rel-L2, learned a/b, ...)
+├── loss_history.png    # per-term loss curves, log scale
+├── solution.png        # PINN vs. exact solution
+└── logs/run_*.log      # full DEBUG-level training log (loguru)
+```
+
+Plus, in the terminal:
+
+1. **Progress bar** with live total loss, and periodic epoch summaries in the log.
+2. **Summary table**:
 
    | Metric | Meaning |
    |--------|---------|
    | Final Loss | Total weighted loss at the last epoch |
+   | Relative L2 Error | Against the closed-form solution |
    | Learned 'a' (Frequency) | Should converge near `sqrt(w0² − d²)` |
    | Learned 'b' (Phase) | Learned phase offset |
    | Epochs Run | Actual epochs completed |
@@ -168,7 +181,7 @@ During and after training you get:
 | Loss plateaus early | Learning rate too high/low for the regime | Try `--lr 3e-4` or `--lr 3e-3`; increase `--epochs` |
 | Good fit near `t=0`, drifts later | Too few collocation points for the frequency | Increase collocation density in `train.py` (currently 100) |
 | Changed `--w0`, training diverges | Loss weights tuned for `w0 = 80` | Retune `weights={'ic': ..., 'physics': ...}` in `solve_harmonic_oscillator` |
-| No plot window appears | Headless environment / non-interactive matplotlib backend | Use `--save-plot --plot-path out.png`, or set `MPLBACKEND=Agg` |
+| No plot window appears | Headless environment / non-interactive matplotlib backend | Run with `--no-show` — all plots are saved to the run directory anyway |
 
 ---
 

@@ -1,7 +1,7 @@
 [project]
 name = "pinn-monorepo"
 version = "0.1.0"
-description = "Add your description here"
+description = "Physics-Informed Neural Networks: core library and experiments"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -28,3 +28,27 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-name = "experiments"
 module-root = ""
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["notebooks", ".workspace"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # long lines in docstrings/tables are fine; formatter handles code
+]
