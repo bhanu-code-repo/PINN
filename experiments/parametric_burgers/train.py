@@ -238,7 +238,7 @@ def solve_parametric_burgers(
         loss_functions = build_losses(n_physics=n_physics, n_ic=200, n_bc=200, device=device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
         trainer = PINNTrainer(model, device=device)
-        trainer.train(n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions)
+        trainer.train(n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions, save_best=run_dir / ("best_model.pt" if member == 0 else f"best_model_{member}.pt"))
 
         name = "checkpoint.pt" if member == 0 else f"checkpoint_{member}.pt"
         trainer.save_checkpoint(

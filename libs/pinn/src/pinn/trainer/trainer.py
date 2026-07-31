@@ -27,6 +27,7 @@ class PINNTrainer:
     - optional early stopping and gradient clipping
     - optional user callbacks per epoch (e.g. custom monitoring)
     - checkpoint save/load (model + optimizer + history)
+    - best-model checkpointing (``save_best``) with optional restore
 
     Plotting is deliberately *not* part of the training loop — use
     :meth:`plot_loss_history` after training, or a callback during it.
@@ -56,6 +57,8 @@ class PINNTrainer:
         early_stop_threshold: float = 1e-8,
         grad_clip: float | None = None,
         callbacks: list[EpochCallback] | None = None,
+        save_best: str | Path | None = None,
+        restore_best: bool = True,
     ) -> list[dict[str, float]]:
         """Run the full-batch training loop.
 
@@ -74,6 +77,11 @@ class PINNTrainer:
             grad_clip: If set, clip the global gradient norm to this value.
             callbacks: Optional list of ``fn(epoch, epoch_losses)`` called at
                 the end of every epoch (after the optimizer step).
+            save_best: If set, save a checkpoint of the best model (lowest
+                total loss) to this path. Updated whenever a new best is found.
+            restore_best: If ``True`` (default) and ``save_best`` is set,
+                restore the best model weights at the end of training. This
+                ensures the final model is the best one found, not the last.
 
         Returns:
             The loss history: one ``{name: value, ..., 'total': value}`` dict
@@ -90,6 +98,10 @@ class PINNTrainer:
         best_loss = float("inf")
         early_stop_counter = 0
         best_epoch = 0
+
+        if save_best is not None:
+            save_best = Path(save_best)
+            save_best.parent.mkdir(parents=True, exist_ok=True)
 
         pbar = tqdm(range(n_epochs), desc="Training", unit="epoch", disable=not verbose)
 
@@ -126,21 +138,23 @@ class PINNTrainer:
                 logger.debug("epoch {}/{} | {} | grad_norm={:.4e}",
                              epoch, n_epochs, terms, grad_norm)
 
-            # 6. Early stopping
-            if early_stop_patience is not None:
-                if epoch_losses["total"] < best_loss - early_stop_threshold:
-                    best_loss = epoch_losses["total"]
-                    early_stop_counter = 0
-                    best_epoch = epoch
-                else:
-                    early_stop_counter += 1
-                    if early_stop_counter >= early_stop_patience:
-                        logger.info(
-                            "Early stop at epoch {}: no improvement for {} epochs "
-                            "(best {:.4e} at epoch {})",
-                            epoch, early_stop_patience, best_loss, best_epoch,
-                        )
-                        break
+            # 6. Best-model tracking + early stopping
+            if epoch_losses["total"] < best_loss - early_stop_threshold:
+                best_loss = epoch_losses["total"]
+                early_stop_counter = 0
+                best_epoch = epoch
+                if save_best is not None:
+                    torch.save({"model_state": self.model.state_dict(), "epoch": epoch}, save_best)
+            else:
+                early_stop_counter += 1
+
+            if early_stop_patience is not None and early_stop_counter >= early_stop_patience:
+                logger.info(
+                    "Early stop at epoch {}: no improvement for {} epochs "
+                    "(best {:.4e} at epoch {})",
+                    epoch, early_stop_patience, best_loss, best_epoch,
+                )
+                break
 
             # 7. Progress bar
             if verbose:
@@ -151,9 +165,20 @@ class PINNTrainer:
                 for callback in callbacks:
                     callback(epoch, epoch_losses)
 
+        # Restore best model weights if requested
+        if save_best is not None and restore_best and save_best.exists():
+            best_state = torch.load(save_best, map_location=self.device, weights_only=False)
+            self.model.load_state_dict(best_state["model_state"])
+            logger.info(
+                "Restored best model from epoch {} (loss {:.4e})",
+                best_epoch, best_loss,
+            )
+
         logger.info(
-            "Training finished after {} epochs | final total loss {:.4e}",
+            "Training finished after {} epochs | final total loss {:.4e} | "
+            "best total loss {:.4e} at epoch {}",
             len(self.loss_history), self.loss_history[-1]["total"],
+            best_loss, best_epoch,
         )
         return self.loss_history
 

@@ -167,6 +167,7 @@ def solve_harmonic_oscillator(
         optimizer=optimizer,
         loss_functions=loss_functions,
         weights=weights,
+        save_best=run_dir / "best_model.pt",
     )
     trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)

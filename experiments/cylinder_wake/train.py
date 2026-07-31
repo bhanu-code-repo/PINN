@@ -517,7 +517,7 @@ def solve_cylinder_wake(
 
     trainer.train(
         n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions,
-        callbacks=[record_lambdas],
+        callbacks=[record_lambdas], save_best=run_dir / "best_model.pt",
     )
     trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)

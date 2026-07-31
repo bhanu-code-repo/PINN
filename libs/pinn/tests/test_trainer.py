@@ -117,6 +117,40 @@ def test_checkpoint_round_trip(tiny_model, cpu, losses, tmp_path):
     assert fresh_opt.state_dict()["param_groups"] == opt.state_dict()["param_groups"]
 
 
+def test_save_best_writes_and_restores(cpu, losses, tmp_path):
+    """save_best saves the best model and restore_best loads it at the end."""
+    model = PINN(input_dim=1, hidden_layers=2, hidden_neurons=8)
+    trainer = PINNTrainer(model, device=cpu)
+    opt = torch.optim.Adam(model.parameters(), lr=1e-3)
+    best_path = tmp_path / "best.pt"
+
+    trainer.train(
+        10, opt, losses, verbose=False, log_every=0,
+        save_best=best_path, restore_best=True,
+    )
+    assert best_path.exists()
+
+    # The restored model should match the saved best weights
+    best_state = torch.load(best_path, map_location=cpu, weights_only=False)
+    for key in best_state["model_state"]:
+        assert torch.equal(model.state_dict()[key], best_state["model_state"][key])
+
+
+def test_save_best_without_restore(cpu, losses, tmp_path):
+    """save_best with restore_best=False keeps the final model, not the best."""
+    model = PINN(input_dim=1, hidden_layers=2, hidden_neurons=8)
+    trainer = PINNTrainer(model, device=cpu)
+    # lr=0 so no learning happens — first epoch sets best, model doesn't change
+    opt = torch.optim.SGD(model.parameters(), lr=0.0)
+    best_path = tmp_path / "best_no_restore.pt"
+
+    trainer.train(
+        5, opt, losses, verbose=False, log_every=0,
+        save_best=best_path, restore_best=False,
+    )
+    assert best_path.exists()
+
+
 def test_plot_loss_history_headless(tiny_model, cpu, losses, tmp_path):
     trainer, opt = make_trainer(tiny_model, cpu)
     trainer.train(N_EPOCHS, opt, losses, verbose=False, log_every=0)

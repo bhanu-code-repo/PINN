@@ -39,7 +39,8 @@ PINN/
 │   └── 04_model_as_solution.ipynb    # Prediction: derivatives, residual check, extrapolation
 ├── docs/
 │   ├── prediction.md             # Concept: how prediction works in a PINN
-│   └── parametric_pinns.md       # Parametric PINNs + deep ensembles: method & tradeoffs
+│   ├── parametric_pinns.md       # Parametric PINNs + deep ensembles: method & tradeoffs
+│   └── adding_experiments.md     # Step-by-step guide for adding a new experiment
 ├── pyproject.toml                # Workspace root + console scripts
 └── uv.lock
 ```
@@ -108,19 +109,18 @@ evaluation, autograd derivatives, residual self-check, extrapolation failure mod
 
 ## Adding a New Experiment
 
+See **[docs/adding_experiments.md](docs/adding_experiments.md)** for the full step-by-step
+guide — including the complete `train.py` template, test pattern, README structure, and a
+reference of all shared infrastructure and design patterns (ansatz, hard BCs, streamfunction,
+parametric inputs, learnable parameters, residual normalisation).
+
+Quick summary:
+
 1. Create `experiments/<name>/` with `__init__.py` and a `train.py` exposing a Typer `app`.
-2. Define the problem: collocation points, residual via `torch.autograd.grad`, IC/BC losses.
-3. Build on the shared library and experiment infrastructure:
-   ```python
-   from pinn import PINN, PINNTrainer
-   from experiments.common import init_run, print_summary, save_metrics, show_banner
-   ```
-4. Register a console script in the root `pyproject.toml`:
-   ```toml
-   [project.scripts]
-   train-<name> = "experiments.<name>.train:app"
-   ```
-5. Re-sync: `uv sync --all-packages`.
+2. Implement `build_model(config)`, `build_losses(...)`, `solve_*(...)`, and the `train`/`predict`/`compare` CLI commands.
+3. Register a console script in `pyproject.toml` and re-sync: `uv sync --all-packages`.
+4. Add a lifecycle test in `tests/test_experiments_cli.py`.
+5. Write a `README.md` with problem statement, method, CLI reference, and caveats.
 
 Every experiment run writes a self-contained artifact directory under `outputs/`
 (checkpoint, `metrics.json`, plots, loguru logs) — see any experiment README for details.
