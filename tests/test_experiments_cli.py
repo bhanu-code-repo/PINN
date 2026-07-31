@@ -5,16 +5,22 @@ temp directories — this codifies the manual smoke sequence used during
 development.
 """
 
+from pathlib import Path
+
 import pytest
 from typer.testing import CliRunner
 
 import experiments.common as common
 from experiments.burgers.train import app as burgers_app
+from experiments.cylinder_wake.train import app as cylinder_app
 from experiments.harmonic_oscillator.train import app as harmonic_app
+from experiments.lid_driven_cavity.train import app as cavity_app
+from experiments.navier_stokes_inverse.train import app as ns_inverse_app
 from experiments.parametric_burgers.train import app as parametric_burgers_app
 from experiments.parametric_harmonic.train import app as parametric_app
 from experiments.parametric_schrodinger.train import app as parametric_nls_app
 from experiments.schrodinger.train import app as schrodinger_app
+from experiments.taylor_green.train import app as taylor_green_app
 
 runner = CliRunner()
 
@@ -184,4 +190,96 @@ def test_parametric_schrodinger_ensemble_lifecycle(tmp_path, monkeypatch):
     # --- compare discovers the run ---
     monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
     result = invoke(parametric_nls_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_taylor_green_lifecycle(tmp_path, monkeypatch):
+    """Taylor-Green vortex: train -> predict -> compare."""
+    run_dir = tmp_path / "taylor_green" / "run1"
+
+    invoke(taylor_green_app, [
+        "train", "-e", "3", "--n-physics", "200",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+
+    invoke(taylor_green_app, ["predict", "--run", str(run_dir), "--no-show"])
+    assert (run_dir / "predictions.npz").exists()
+    assert (run_dir / "prediction_comparison.png").exists()
+
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(taylor_green_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_lid_driven_cavity_lifecycle(tmp_path, monkeypatch):
+    """Lid-driven cavity: train -> predict -> compare."""
+    run_dir = tmp_path / "lid_driven_cavity" / "run1"
+
+    invoke(cavity_app, [
+        "train", "-e", "3", "--n-physics", "200",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+
+    invoke(cavity_app, ["predict", "--run", str(run_dir), "--no-show"])
+    assert (run_dir / "predictions.npz").exists()
+    assert (run_dir / "prediction_cavity.png").exists()
+
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(cavity_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_navier_stokes_inverse_lifecycle(tmp_path, monkeypatch):
+    """Inverse NS (Kovasznay): train -> predict -> compare, check Re is saved."""
+    import numpy as np
+
+    run_dir = tmp_path / "navier_stokes_inverse" / "run1"
+
+    invoke(ns_inverse_app, [
+        "train", "-e", "3", "--n-physics", "200", "--n-obs", "50",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+    assert (run_dir / "observations.npz").exists()
+
+    invoke(ns_inverse_app, ["predict", "--run", str(run_dir), "--no-show"])
+    data = np.load(run_dir / "predictions.npz")
+    assert "re_inferred" in data
+    assert (run_dir / "prediction_inverse.png").exists()
+
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(ns_inverse_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_cylinder_wake_lifecycle(tmp_path, monkeypatch):
+    """Cylinder wake inverse: train -> predict -> compare with DNS data."""
+    import numpy as np
+
+    data_path = Path(".workspace/input/cylinder_nektar_wake.mat")
+    if not data_path.exists():
+        pytest.skip("cylinder_nektar_wake.mat not found in .workspace/input/")
+
+    run_dir = tmp_path / "cylinder_wake" / "run1"
+
+    invoke(cylinder_app, [
+        "train", "-e", "3", "--n-train", "100", "--n-physics", "200",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+
+    invoke(cylinder_app, ["predict", "--run", str(run_dir), "--no-show"])
+    data = np.load(run_dir / "predictions.npz")
+    assert "lambda_1" in data
+    assert "lambda_2" in data
+    assert (run_dir / "prediction_snapshot.png").exists()
+
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(cylinder_app, ["compare"])
     assert "No runs" not in result.output

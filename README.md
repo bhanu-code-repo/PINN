@@ -27,7 +27,11 @@ PINN/
 │   ├── schrodinger/              # Schrödinger equation
 │   ├── parametric_harmonic/      # Parametric family (t,w0,d) + deep ensembles
 │   ├── parametric_burgers/       # Parametric viscosity family (x,t,nu) + ensembles
-│   └── parametric_schrodinger/   # Complex parametric soliton family (x,t,A) + ensembles
+│   ├── parametric_schrodinger/   # Complex parametric soliton family (x,t,A) + ensembles
+│   ├── taylor_green/             # Taylor-Green vortex — 2D unsteady NS, exact solution
+│   ├── lid_driven_cavity/        # Lid-driven cavity — 2D steady NS, Ghia benchmark
+│   ├── navier_stokes_inverse/    # Inverse NS — infer Re from data (Kovasznay flow)
+│   └── cylinder_wake/            # Raissi cylinder wake — inverse NS with real DNS data
 ├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
@@ -75,6 +79,17 @@ uv run train-harmonic compare            # rank all runs by their recorded metri
 | Parametric harmonic | whole `(w0, d)` family, one model | `uv run train-parametric train` | [README](experiments/parametric_harmonic/README.md) |
 | Parametric Burgers | whole viscosity family, one model | `uv run train-parametric-burgers train` | [README](experiments/parametric_burgers/README.md) |
 | Parametric Schrödinger | complex soliton family, one model | `uv run train-parametric-schrodinger train` | [README](experiments/parametric_schrodinger/README.md) |
+| **Taylor-Green vortex** | 2D unsteady NS, exact solution | `uv run train-taylor-green train` | [README](experiments/taylor_green/README.md) |
+| **Lid-driven cavity** | 2D steady NS, Ghia benchmark | `uv run train-cavity train` | [README](experiments/lid_driven_cavity/README.md) |
+| **NS inverse (Kovasznay)** | infer Re from scattered data | `uv run train-ns-inverse train` | [README](experiments/navier_stokes_inverse/README.md) |
+| **Cylinder wake (Raissi)** | inverse NS with real DNS data | `uv run train-cylinder train` | [README](experiments/cylinder_wake/README.md) |
+
+The Navier-Stokes experiments cover the full spectrum: **forward unsteady** (Taylor-Green,
+exact solution), **forward steady** (cavity, Ghia benchmark), **inverse self-contained**
+(Kovasznay, infer Re from synthetic data), and **inverse with real data** (Raissi cylinder
+wake — infer λ₁, λ₂ from DNS, reconstruct hidden pressure). The cylinder wake reproduces
+the headline result from the original PINNs paper using a streamfunction formulation for
+exact incompressibility.
 
 The parametric experiments lift "one model = one problem instance": parameters become network
 *inputs*, so `predict --w0 40 -d 1.5` (or `--nu 0.05`, or `-a 1.3`) solves a **never-trained**

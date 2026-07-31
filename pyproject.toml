@@ -8,6 +8,7 @@ dependencies = [
     "click>=8.4.2",
     "pyfiglet>=1.0.4",
     "rich>=15.0.0",
+    "scipy>=1.14.0",
     "typer>=0.27.0",
 ]
 
@@ -23,6 +24,10 @@ train-schrodinger = "experiments.schrodinger.train:app"
 train-parametric = "experiments.parametric_harmonic.train:app"
 train-parametric-burgers = "experiments.parametric_burgers.train:app"
 train-parametric-schrodinger = "experiments.parametric_schrodinger.train:app"
+train-taylor-green = "experiments.taylor_green.train:app"
+train-cavity = "experiments.lid_driven_cavity.train:app"
+train-ns-inverse = "experiments.navier_stokes_inverse.train:app"
+train-cylinder = "experiments.cylinder_wake.train:app"
 
 [build-system]
 requires = ["uv_build>=0.8.15,<0.9.0"]
