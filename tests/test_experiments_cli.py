@@ -13,6 +13,7 @@ from experiments.burgers.train import app as burgers_app
 from experiments.harmonic_oscillator.train import app as harmonic_app
 from experiments.parametric_burgers.train import app as parametric_burgers_app
 from experiments.parametric_harmonic.train import app as parametric_app
+from experiments.parametric_schrodinger.train import app as parametric_nls_app
 from experiments.schrodinger.train import app as schrodinger_app
 
 runner = CliRunner()
@@ -146,4 +147,41 @@ def test_parametric_burgers_ensemble_lifecycle(tmp_path, monkeypatch):
     # --- compare discovers the run ---
     monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
     result = invoke(parametric_burgers_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_parametric_schrodinger_ensemble_lifecycle(tmp_path, monkeypatch):
+    """Parametric NLS soliton: ensemble train -> predict at new A -> compare."""
+    import numpy as np
+
+    run_dir = tmp_path / "parametric_schrodinger" / "run1"
+
+    # --- train a tiny 2-member ensemble ---
+    invoke(parametric_nls_app, [
+        "train", "-e", "3", "--n-physics", "200", "--ensemble", "2",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "checkpoint_1.pt").exists()
+    assert (run_dir / "metrics.json").exists()
+
+    # --- predict a never-trained amplitude: complex mean + std saved ---
+    invoke(parametric_nls_app, [
+        "predict", "-a", "1.3", "--run", str(run_dir), "--no-show",
+    ])
+    data = np.load(run_dir / "predictions.npz")
+    assert data["u_mean"].shape == data["v_mean"].shape == data["h_mag_mean"].shape
+    assert float(data["h_mag_std"].max()) > 0  # two members must disagree somewhere
+    assert (run_dir / "prediction_contour.png").exists()
+    assert (run_dir / "prediction_snapshots.png").exists()
+
+    # --- out-of-range amplitude still runs but warns ---
+    result = invoke(parametric_nls_app, [
+        "predict", "-a", "3.0", "--run", str(run_dir), "--no-show",
+    ])
+    assert "OUTSIDE the trained box" in result.output
+
+    # --- compare discovers the run ---
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(parametric_nls_app, ["compare"])
     assert "No runs" not in result.output

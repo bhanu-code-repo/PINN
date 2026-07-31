@@ -11,6 +11,9 @@ Implementations:
   family over `(w0, d)`, validated against the closed-form solution
 - [`experiments/parametric_burgers`](../experiments/parametric_burgers/README.md) — PDE family
   over viscosity `ν`, validated via IC error + residual (no closed form exists)
+- [`experiments/parametric_schrodinger`](../experiments/parametric_schrodinger/README.md) —
+  **complex-valued** PDE family over the soliton amplitude `A`, validated against the exact
+  soliton (see §6 for why this family was chosen)
 
 ---
 
@@ -71,7 +74,7 @@ Measured on this repo's experiments (CPU, Apple Silicon):
 | | Single-instance | Parametric |
 |---|---|---|
 | **Training cost** | ~20 s (harmonic, 15k epochs) | 10–50× more: 3D collocation box, larger net, more epochs (×N again for ensembles) |
-| **Accuracy per instance** | excellent — rel-L2 **1.3e-4** (harmonic, converged) | good, not great — capacity is *shared* across the family. Measured at 8k epochs (defaults are 40k): harmonic held-out rel-L2 **0.08–0.40**; Burgers held-out IC rel-L2 **0.009–0.067** with residuals 0.013–0.067, worst in the sharp-shock low-ν corner |
+| **Accuracy per instance** | excellent — rel-L2 **1.3e-4** (harmonic, converged) | good, not great — capacity is *shared* across the family. Measured at 8k epochs (defaults are 40k): harmonic held-out rel-L2 **0.08–0.40**; Burgers held-out IC rel-L2 **0.009–0.067** (worst in the sharp-shock low-ν corner); Schrödinger soliton family full-complex rel-L2 **0.010–0.014** — the best of the three, because the phase-embedded ansatz leaves only a static envelope to learn (Rule 3 pays off) |
 | **New problem instance** | full retrain (~minutes) | **milliseconds** (one forward pass) |
 | **Validity region** | one point in parameter space | a box — with hard edges (see below) |
 | **Loss weighting effort** | hand-tuned per problem (`1e-4` physics weight) | eliminated by residual normalisation (Rule 2) |
@@ -131,18 +134,34 @@ need error bars on top                   -> + --ensemble 5
 parameter far outside any trained box    -> retrain (no free lunch)
 ```
 
-## 6. Deferred: Parametric Schrödinger
+## 6. Parametric Schrödinger: Solved for the Soliton Family — Breathers Deferred
 
-Deliberately not implemented yet — for honest reasons, not oversight:
+The NLS as posed (`i·h_t + ½·h_xx + |h|²·h = 0`) has **no free physical parameter**; the
+family must come from the initial condition. The choice of family decides everything:
 
-1. The NLS as posed (`i·h_t + ½·h_xx + |h|²·h = 0`) has **no free physical parameter**; the
-   natural family is the IC amplitude `h(0,x) = A·sech(x)`.
-2. That family is *qualitatively* diverse: `A=1` is a fundamental soliton (shape-invariant),
-   `A=2` a breather (periodic shape oscillation) — the hardest kind of family for one network
-   to represent, compounded by complex output and periodic BCs.
-3. The right sequence is: validate the parametric pattern on Burgers (PDE, done), then attempt
-   NLS with a dedicated effort — likely needing larger capacity, curriculum over `A`, and the
-   Adam→L-BFGS two-stage recipe.
+**Implemented —
+[`experiments/parametric_schrodinger`](../experiments/parametric_schrodinger/README.md):**
+the IC `h(0,x) = A·sech(A·x)` gives the **fundamental soliton family**, where every member has
+the closed-form solution `h = A·sech(A·x)·e^(i·A²t/2)`. This makes the complex parametric PINN
+tractable *and* rigorously validatable:
+
+- Rule 3 in action: the known phase rotation `e^(i·A²t/2)` is embedded analytically in the
+  ansatz `h = W(x,t,A)·e^(i·A²t/2)`, so the backbone's exact target is `W = A·sech(A·x)` —
+  real and time-independent. A complex rotating field becomes a nearly-static envelope.
+- Validation: full-complex rel-L2 against the exact soliton at held-out amplitudes.
+- It also serves as the repo's reference for **how to train a complex-valued parametric
+  PINN**: complex residual assembly + parametric input + analytic structure, in one file.
+
+**Deferred — the breather family `h(0,x) = A·sech(x)`:** here solution *character* changes
+qualitatively with `A` (`A=1` shape-invariant soliton, `A=2` breather with periodic shape
+oscillations) — the hardest kind of family for a single network, with no general closed form.
+A serious attempt would need curriculum over `A`, larger capacity, and the Adam→L-BFGS
+two-stage recipe. The single-instance `experiments/schrodinger` (which solves the `2·sech(x)`
+breather) remains the hard showcase.
+
+**The design lesson:** when a problem has no natural parameter, *you choose the family* — and
+choosing one with analytic structure (known phase, known frequency, known solution) is the
+difference between a tractable experiment and a research project.
 
 ## 7. Beyond: Operator Learning
 

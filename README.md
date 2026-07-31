@@ -26,7 +26,8 @@ PINN/
 │   ├── burgers/                  # Burgers' equation
 │   ├── schrodinger/              # Schrödinger equation
 │   ├── parametric_harmonic/      # Parametric family (t,w0,d) + deep ensembles
-│   └── parametric_burgers/       # Parametric viscosity family (x,t,nu) + ensembles
+│   ├── parametric_burgers/       # Parametric viscosity family (x,t,nu) + ensembles
+│   └── parametric_schrodinger/   # Complex parametric soliton family (x,t,A) + ensembles
 ├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
@@ -73,10 +74,11 @@ uv run train-harmonic compare            # rank all runs by their recorded metri
 | Schrödinger | `i·h_t + ½·h_xx + |h|²·h = 0` | `uv run train-schrodinger train` | [README](experiments/schrodinger/README.md) |
 | Parametric harmonic | whole `(w0, d)` family, one model | `uv run train-parametric train` | [README](experiments/parametric_harmonic/README.md) |
 | Parametric Burgers | whole viscosity family, one model | `uv run train-parametric-burgers train` | [README](experiments/parametric_burgers/README.md) |
+| Parametric Schrödinger | complex soliton family, one model | `uv run train-parametric-schrodinger train` | [README](experiments/parametric_schrodinger/README.md) |
 
 The parametric experiments lift "one model = one problem instance": parameters become network
-*inputs*, so `predict --w0 40 -d 1.5` (or `predict --nu 0.05`) solves a **never-trained**
-instance in milliseconds. Both support deep ensembles (`train --ensemble 5`) for ±2σ
+*inputs*, so `predict --w0 40 -d 1.5` (or `--nu 0.05`, or `-a 1.3`) solves a **never-trained**
+instance in milliseconds. All support deep ensembles (`train --ensemble 5`) for ±2σ
 epistemic-uncertainty bands. Method, design rules, and the measured cost/accuracy tradeoff vs
 single-instance PINNs: [docs/parametric_pinns.md](docs/parametric_pinns.md).
 
