@@ -25,14 +25,16 @@ PINN/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
 │   ├── schrodinger/              # Schrödinger equation
-│   └── parametric_harmonic/      # Parametric family (t,w0,d) + deep ensembles
+│   ├── parametric_harmonic/      # Parametric family (t,w0,d) + deep ensembles
+│   └── parametric_burgers/       # Parametric viscosity family (x,t,nu) + ensembles
 ├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
 │   ├── 03_schrodinger_analysis.ipynb # Complex fields, periodic BCs
 │   └── 04_model_as_solution.ipynb    # Prediction: derivatives, residual check, extrapolation
 ├── docs/
-│   └── prediction.md             # Concept: how prediction works in a PINN
+│   ├── prediction.md             # Concept: how prediction works in a PINN
+│   └── parametric_pinns.md       # Parametric PINNs + deep ensembles: method & tradeoffs
 ├── pyproject.toml                # Workspace root + console scripts
 └── uv.lock
 ```
@@ -70,11 +72,13 @@ uv run train-harmonic compare            # rank all runs by their recorded metri
 | Burgers | `u_t + u·u_x = ν·u_xx` | `uv run train-burgers train` | [README](experiments/burgers/README.md) |
 | Schrödinger | `i·h_t + ½·h_xx + |h|²·h = 0` | `uv run train-schrodinger train` | [README](experiments/schrodinger/README.md) |
 | Parametric harmonic | whole `(w0, d)` family, one model | `uv run train-parametric train` | [README](experiments/parametric_harmonic/README.md) |
+| Parametric Burgers | whole viscosity family, one model | `uv run train-parametric-burgers train` | [README](experiments/parametric_burgers/README.md) |
 
-The parametric experiment lifts "one model = one problem instance": the network takes
-`(t, w0, d)` as input, so `predict --w0 40 -d 1.5` solves a **never-trained** instance in
-milliseconds. It also supports deep ensembles (`train --ensemble 5`) for ±2σ
-epistemic-uncertainty bands at prediction time.
+The parametric experiments lift "one model = one problem instance": parameters become network
+*inputs*, so `predict --w0 40 -d 1.5` (or `predict --nu 0.05`) solves a **never-trained**
+instance in milliseconds. Both support deep ensembles (`train --ensemble 5`) for ±2σ
+epistemic-uncertainty bands. Method, design rules, and the measured cost/accuracy tradeoff vs
+single-instance PINNs: [docs/parametric_pinns.md](docs/parametric_pinns.md).
 
 Each CLI also provides `predict` (re-evaluate a saved model — defaults to the latest run;
 checkpoints are self-describing, so the architecture is rebuilt automatically from the stored

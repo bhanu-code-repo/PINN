@@ -62,19 +62,23 @@ samples that function on a grid and compares against the exact formula.
    > implements exactly this. The network input is `(t, w0, d)`, trained over
    > `w0 ∈ [20, 100] × d ∈ [0.1, 4]` with a `k`-normalised residual; after one training run,
    > `uv run train-parametric predict --w0 40 -d 1.5` solves a **never-trained** instance in
-   > milliseconds, validated against the exact solution. Note the caveat: this is
-   > *interpolation in parameter space* — `w0 = 150` outside the trained box is limitation #1
-   > all over again (the CLI warns you).
+   > milliseconds, validated against the exact solution. The PDE counterpart is
+   > [`experiments/parametric_burgers`](../experiments/parametric_burgers/README.md)
+   > (viscosity family). Note the caveat: this is *interpolation in parameter space* —
+   > `w0 = 150` outside the trained box is limitation #1 all over again (the CLI warns you).
+   > Full method, design rules, and the measured cost/accuracy tradeoff:
+   > [parametric_pinns.md](parametric_pinns.md).
 
 3. **No uncertainty awareness.** A low final loss ≠ guaranteed accuracy everywhere; the
    residual check above is your honest diagnostic.
 
-   > **Mitigated in this repo:** the parametric experiment supports **deep ensembles** —
+   > **Mitigated in this repo:** both parametric experiments support **deep ensembles** —
    > `uv run train-parametric train --ensemble 5` trains N members from different seeds;
    > `predict` then plots the member mean with a ±2σ epistemic-uncertainty band and reports
    > the band width. Combined with the residual map you get two *independent* diagnostics:
    > ensemble σ (do the models disagree?) and the residual (is the physics satisfied?). Where
-   > both are small, the solution is genuinely trustworthy.
+   > both are small, the solution is genuinely trustworthy. The full σ-vs-residual decision
+   > table is in [parametric_pinns.md](parametric_pinns.md).
 
 ## So in this repo
 

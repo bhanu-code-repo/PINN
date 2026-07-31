@@ -5,6 +5,10 @@ classic PINN limitation of "one model = one problem instance" — with optional 
 uncertainty bands**. This experiment directly addresses limitations #2 and #3 from
 [docs/prediction.md](../../docs/prediction.md).
 
+Full method, design rules, and the measured single-instance-vs-parametric tradeoff table:
+[docs/parametric_pinns.md](../../docs/parametric_pinns.md). The PDE counterpart is
+[`experiments/parametric_burgers`](../parametric_burgers/README.md).
+
 ---
 
 ## 1. Problem Statement

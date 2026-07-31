@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 import experiments.common as common
 from experiments.burgers.train import app as burgers_app
 from experiments.harmonic_oscillator.train import app as harmonic_app
+from experiments.parametric_burgers.train import app as parametric_burgers_app
 from experiments.parametric_harmonic.train import app as parametric_app
 from experiments.schrodinger.train import app as schrodinger_app
 
@@ -108,4 +109,41 @@ def test_parametric_ensemble_lifecycle(tmp_path, monkeypatch):
     # --- compare discovers the run ---
     monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
     result = invoke(parametric_app, ["compare"])
+    assert "No runs" not in result.output
+
+
+def test_parametric_burgers_ensemble_lifecycle(tmp_path, monkeypatch):
+    """Parametric Burgers: ensemble train -> predict at new nu -> compare."""
+    import numpy as np
+
+    run_dir = tmp_path / "parametric_burgers" / "run1"
+
+    # --- train a tiny 2-member ensemble ---
+    invoke(parametric_burgers_app, [
+        "train", "-e", "3", "--n-physics", "200", "--ensemble", "2",
+        "--seed", "0", "--no-show", "-o", str(run_dir),
+    ])
+    assert (run_dir / "checkpoint.pt").exists()
+    assert (run_dir / "checkpoint_1.pt").exists()
+    assert (run_dir / "metrics.json").exists()
+
+    # --- predict a never-trained viscosity: mean + std saved ---
+    invoke(parametric_burgers_app, [
+        "predict", "--nu", "0.05", "--run", str(run_dir), "--no-show",
+    ])
+    data = np.load(run_dir / "predictions.npz")
+    assert data["u_mean"].shape == data["u_std"].shape
+    assert float(data["u_std"].max()) > 0  # two members must disagree somewhere
+    assert (run_dir / "prediction_contour.png").exists()
+    assert (run_dir / "prediction_snapshots.png").exists()
+
+    # --- out-of-range viscosity still runs but warns ---
+    result = invoke(parametric_burgers_app, [
+        "predict", "--nu", "0.5", "--run", str(run_dir), "--no-show",
+    ])
+    assert "OUTSIDE the trained box" in result.output
+
+    # --- compare discovers the run ---
+    monkeypatch.setattr(common, "OUTPUTS_ROOT", tmp_path)
+    result = invoke(parametric_burgers_app, ["compare"])
     assert "No runs" not in result.output
