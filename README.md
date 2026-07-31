@@ -32,7 +32,16 @@ PINN/
 │   ├── lid_driven_cavity/        # Lid-driven cavity — 2D steady NS, Ghia benchmark
 │   ├── navier_stokes_inverse/    # Inverse NS — infer Re from data (Kovasznay flow)
 │   └── cylinder_wake/            # Raissi cylinder wake — inverse NS with real DNS data
-├── notebooks/                    # Guided walkthrough notebooks (theory + analysis)
+├── learn/                        # Hands-on PINN course (8 notebooks, ~4 hours)
+│   ├── 01_what_are_pinns.ipynb       # Motivation, landscape, when to use
+│   ├── 02_autodiff_the_key_idea.ipynb # torch.autograd.grad deep dive
+│   ├── 03_first_pinn_from_scratch.ipynb # Solve u'=-u with raw PyTorch
+│   ├── 04_data_vs_physics_vs_hybrid.ipynb # Same ODE 3 ways — the aha moment
+│   ├── 05_pdes_and_boundary_conditions.ipynb # Burgers' equation from scratch
+│   ├── 06_training_tricks.ipynb      # Loss weighting, spectral bias, Ansatz
+│   ├── 07_parametric_and_inverse.ipynb # Parameters as inputs + learnable params
+│   └── 08_honest_assessment.ipynb    # Failure modes, alternatives, decision framework
+├── notebooks/                    # Experiment-specific analysis notebooks
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
 │   ├── 03_schrodinger_analysis.ipynb # Complex fields, periodic BCs
@@ -43,6 +52,15 @@ PINN/
 │   └── adding_experiments.md     # Step-by-step guide for adding a new experiment
 ├── pyproject.toml                # Workspace root + console scripts
 └── uv.lock
+```
+
+## Learn PINNs
+
+New to PINNs? The **[learn/](learn/)** directory is a hands-on course (8 notebooks, ~4 hours) that takes you from zero to solving your own equations. No prior PINN experience required — just Python, PyTorch basics, and some calculus. See [learn/README.md](learn/README.md) for the full learning path.
+
+```bash
+uv sync --all-packages
+jupyter lab learn/
 ```
 
 ## Getting Started

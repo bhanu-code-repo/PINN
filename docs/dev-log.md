@@ -143,6 +143,20 @@ Four NS experiments covering the full spectrum:
 - 2 new trainer unit tests for best-model feature.
 - 34 tests pass total (up from 28 at Phase 4).
 
+### Phase 9 — Learn PINN curriculum
+**Pending commit**
+
+- `learn/` directory: 8 progressive Jupyter notebooks (~4 hours total) teaching PINNs from
+  first principles. No prior PINN experience required.
+- Notebooks: (01) what PINNs are, (02) autograd deep dive, (03) first PINN from scratch
+  (u'=-u), (04) data vs physics vs hybrid (the aha moment), (05) PDEs and BCs (Burgers),
+  (06) training tricks (weighting, spectral bias, Ansatz), (07) parametric and inverse PINNs,
+  (08) honest assessment with decision framework.
+- `learn/README.md` — course overview, learning path table, prerequisites, relationship to
+  production code.
+- Root README updated with `learn/` in directory tree and "Learn PINNs" section.
+- `learn/` added to ruff's extend-exclude.
+
 ---
 
 ## Roadmap / Deferred
