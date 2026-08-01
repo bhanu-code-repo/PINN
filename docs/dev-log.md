@@ -202,15 +202,33 @@ Four NS experiments covering the full spectrum:
 - 57 tests pass total (up from 37 at Phase 10): 8 new tests for validation, NaN detection,
   LR scheduling, checkpoint errors, activations.
 
+### Phase 12 — GitHub Actions CI
+**Commit:** `d419445` Add GitHub Actions CI: ruff lint + pytest on push and PR
+
+- `.github/workflows/ci.yml` — two-job CI: `lint` (ruff check) and `test` (pytest).
+- Triggers on push to `main`/`v*` branches and PRs to `main`.
+- Uses `astral-sh/setup-uv@v6` for fast uv-based dependency resolution.
+- Slow convergence tests excluded from CI (via `-m 'not slow'` in pytest config).
+
+### Phase 13 — Convergence validation tests for NS experiments
+**Pending commit**
+
+- 3 new `@pytest.mark.slow` convergence tests in `tests/test_convergence.py`:
+  - `test_taylor_green_loss_drops` — 2000 epochs, asserts 10x loss reduction. Exercises
+    full NS pipeline (momentum + continuity residual, IC, periodic BCs).
+  - `test_lid_driven_cavity_loss_drops` — 2000 epochs, asserts 10x loss reduction.
+    Exercises steady NS with hard-encoded wall BCs (mask-based).
+  - `test_navier_stokes_inverse_re_moves_toward_truth` — 5000 epochs, asserts inferred
+    Re moves closer to truth (Re=20) from initial guess (Re=10). Uses 3-layer 32-neuron
+    network with data weight=10 to anchor the solution.
+- 62 total tests (57 fast + 5 slow), up from 59 at Phase 12.
+
 ---
 
 ## Roadmap / Deferred
 
-- **GitHub Actions CI** — run `pytest` + `ruff check` on push.
 - **Inverse-problem notebook** — walkthrough of the data-loss term methodology.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
-- **Convergence validation runs** — medium background runs for NS experiments (Taylor-Green,
-  cavity, cylinder wake) to establish baseline numbers before committing to docs.
 - **Parametric NS** — Taylor-Green parametric in nu (Reynolds sweep), reusing the
   parametric PINN pattern.
