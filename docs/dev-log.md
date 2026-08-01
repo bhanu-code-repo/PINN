@@ -131,7 +131,7 @@ Four NS experiments covering the full spectrum:
 - Test for cylinder wake skips gracefully if data file is missing.
 
 ### Phase 8 — Best-model saving + experiment quickstart guide
-**Pending commit**
+**Commit:** `e99a7ac` Add best-model checkpointing, experiment quickstart guide, and dev log
 
 - `PINNTrainer.train()` — new `save_best` and `restore_best` parameters. Saves best model
   weights (lowest total loss) during training; restores them at end so `checkpoint.pt`
@@ -144,7 +144,7 @@ Four NS experiments covering the full spectrum:
 - 34 tests pass total (up from 28 at Phase 4).
 
 ### Phase 9 — Learn PINN curriculum
-**Pending commit**
+**Commit:** `86cd477` Add learn/ curriculum: 8 progressive notebooks for learning PINNs from scratch
 
 - `learn/` directory: 8 progressive Jupyter notebooks (~4 hours total) teaching PINNs from
   first principles. No prior PINN experience required.
@@ -160,7 +160,8 @@ Four NS experiments covering the full spectrum:
 ## 2026-08-01
 
 ### Phase 10 — L-BFGS two-stage training
-**Pending commit**
+**Commits:** `455ab2d` Add L-BFGS two-stage training support for inverse problems
+           `f09b4f2` Update READMEs with L-BFGS two-stage training documentation
 
 - `PINNTrainer.train()` — automatic L-BFGS support. Detects closure-based optimizers
   (via `_is_closure_optimizer`) and uses `optimizer.step(closure)` pattern instead of
@@ -172,6 +173,9 @@ Four NS experiments covering the full spectrum:
 - `experiments/navier_stokes_inverse/train.py` — same two-stage pattern for Re inference.
 - 3 new trainer unit tests: L-BFGS basic, L-BFGS with save_best, two-stage Adam→L-BFGS.
 - 37 tests pass total (up from 34 at Phase 9).
+- Updated READMEs: `libs/pinn/README.md`, `experiments/cylinder_wake/README.md`,
+  `experiments/navier_stokes_inverse/README.md`, `docs/adding_experiments.md` — all
+  reflect L-BFGS support, two-stage training examples, and updated CLI reference tables.
 
 ---
 
