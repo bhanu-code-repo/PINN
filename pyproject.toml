@@ -28,6 +28,7 @@ train-taylor-green = "experiments.taylor_green.train:app"
 train-cavity = "experiments.lid_driven_cavity.train:app"
 train-ns-inverse = "experiments.navier_stokes_inverse.train:app"
 train-cylinder = "experiments.cylinder_wake.train:app"
+train-parametric-tg = "experiments.parametric_taylor_green.train:app"
 
 [build-system]
 requires = ["uv_build>=0.8.15,<0.9.0"]

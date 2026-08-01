@@ -223,6 +223,18 @@ Four NS experiments covering the full spectrum:
     network with data weight=10 to anchor the solution.
 - 62 total tests (57 fast + 5 slow), up from 59 at Phase 12.
 
+### Phase 14 — Parametric Taylor-Green (Reynolds sweep)
+**Pending commit**
+
+- `experiments/parametric_taylor_green/` — parametric PINN for the Taylor-Green vortex
+  over `nu in [0.001, 0.1]` (Re = 10 to 1000). Network takes `(x, y, t, log10(nu)_norm)`
+  as input, outputs `(u, v, p)`. Log-uniform viscosity sampling during training.
+- Exact closed-form validation at held-out viscosities (nu = 0.002, 0.015, 0.07) —
+  the cleanest parametric NS benchmark (unlike Burgers, no residual-only validation).
+- Full CLI: `train-parametric-tg train/predict/compare`. Ensemble support via `--ensemble`.
+- Lifecycle test in `test_experiments_cli.py` including out-of-range warning check.
+- 63 total tests (58 fast + 5 slow), up from 62 at Phase 13.
+
 ---
 
 ## Roadmap / Deferred
@@ -230,5 +242,3 @@ Four NS experiments covering the full spectrum:
 - **Inverse-problem notebook** — walkthrough of the data-loss term methodology.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
-- **Parametric NS** — Taylor-Green parametric in nu (Reynolds sweep), reusing the
-  parametric PINN pattern.
