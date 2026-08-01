@@ -169,7 +169,7 @@ def page_run_detail():
     png_files = sorted(run_dir.glob("*.png"))
     if png_files:
         for png in png_files:
-            st.image(str(png), caption=png.name, use_container_width=True)
+            st.image(str(png), caption=png.name, width="stretch")
     else:
         st.info("No plot images found.")
 
@@ -209,7 +209,7 @@ def page_compare():
         row.update(data.get("metrics", {}))
         all_data.append(row)
 
-    st.dataframe(all_data, use_container_width=True)
+    st.dataframe(all_data, width="stretch")
 
     # --- Overlaid loss curves ---
     st.subheader("Loss Curves")
