@@ -236,6 +236,7 @@ Four NS experiments covering the full spectrum:
 - 63 total tests (58 fast + 5 slow), up from 62 at Phase 13.
 
 ### Phase 15 — Streamlit dashboard
+**Commit:** `1b9efe1` Add Streamlit dashboard for browsing runs and interactive parametric prediction
 
 - `dashboard.py` — single-file Streamlit app for browsing and interacting with
   PINN training runs. Four pages:
