@@ -236,21 +236,29 @@ Four NS experiments covering the full spectrum:
 - 63 total tests (58 fast + 5 slow), up from 62 at Phase 13.
 
 ### Phase 15 — Streamlit dashboard
-**Commit:** `1b9efe1` Add Streamlit dashboard for browsing runs and interactive parametric prediction
+**Commits:** `1b9efe1` Add Streamlit dashboard for browsing runs and interactive parametric prediction
+           `5882a99` Upgrade dashboard to premium UI: Plotly charts, custom CSS, icons
+           `37f1d31` Light-only theme with brand #00205B, plot expand dialog
+           `357e3eb` Fix sidebar heading color and increase nav font size
 
 - `dashboard.py` — single-file Streamlit app for browsing and interacting with
   PINN training runs. Four pages:
-  - **Overview** — lists all experiments and runs under `outputs/`, shows metrics
-    summary table.
-  - **Run Detail** — select a run to view config (from checkpoint metadata),
-    loss history plot (interactive Plotly), and training artifacts.
-  - **Compare** — side-by-side comparison of runs within an experiment, ranked
-    by loss or rel-L2.
+  - **Overview** — summary stats bar (experiment count, total runs, best loss),
+    experiment cards with Material Design icons, color-coded loss indicators.
+  - **Run Detail** — config and metrics cards, interactive Plotly loss curves
+    (zoom, hover, pan), artifacts listing with file-type icons, plot gallery
+    with "Expand" button (opens full-width `st.dialog`).
+  - **Compare** — metrics dataframe, overlaid Plotly loss curves across runs.
+    Component losses togglable via legend clicks.
   - **Parametric Predictor** — interactive sliders for all 4 parametric experiments
     (harmonic, Burgers, Schrodinger, Taylor-Green). Loads trained checkpoints,
     runs inference on the fly, plots PINN prediction vs exact solution.
-    `@st.cache_resource` for model caching.
-- `streamlit>=1.45.0` added to `pyproject.toml` dependencies.
+    `@st.cache_resource` for model caching. Loading spinners.
+- Light theme with brand navy `#00205B`: gradient sidebar, tinted metric cards,
+  branded headers. Custom CSS for card styling and typography.
+- `plotly>=6.1.0` and `streamlit>=1.45.0` added to `pyproject.toml`.
+- `docs/dashboard.md` — full usage guide: quick start, page descriptions,
+  how it works, customisation.
 - Launch: `uv run streamlit run dashboard.py`.
 
 ---
