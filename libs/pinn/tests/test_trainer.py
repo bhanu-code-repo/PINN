@@ -157,3 +157,45 @@ def test_plot_loss_history_headless(tiny_model, cpu, losses, tmp_path):
     out = tmp_path / "loss.png"
     trainer.plot_loss_history(show_total=True, save_path=out, show=False)
     assert out.exists() and out.stat().st_size > 0
+
+
+def test_lbfgs_optimizer(tiny_model, cpu, losses):
+    """L-BFGS optimizer uses the closure-based step pattern."""
+    trainer = PINNTrainer(tiny_model, device=cpu)
+    opt = torch.optim.LBFGS(tiny_model.parameters(), lr=1.0, max_iter=5)
+    history = trainer.train(3, opt, losses, verbose=False, log_every=0)
+    assert len(history) == 3
+    assert set(history[0]) == {"a", "b", "total"}
+    # L-BFGS should reduce the loss (it's a strong optimizer)
+    assert history[-1]["total"] <= history[0]["total"]
+
+
+def test_lbfgs_with_save_best(tiny_model, cpu, losses, tmp_path):
+    """L-BFGS works with best-model saving and restoring."""
+    trainer = PINNTrainer(tiny_model, device=cpu)
+    opt = torch.optim.LBFGS(tiny_model.parameters(), lr=1.0, max_iter=5)
+    best_path = tmp_path / "best_lbfgs.pt"
+    trainer.train(
+        3, opt, losses, verbose=False, log_every=0,
+        save_best=best_path, restore_best=True,
+    )
+    assert best_path.exists()
+
+
+def test_two_stage_adam_then_lbfgs(tiny_model, cpu, losses):
+    """Two-stage training: Adam followed by L-BFGS."""
+    trainer = PINNTrainer(tiny_model, device=cpu)
+
+    # Stage 1: Adam
+    opt_adam = torch.optim.Adam(tiny_model.parameters(), lr=1e-2)
+    trainer.train(5, opt_adam, losses, verbose=False, log_every=0)
+    loss_after_adam = trainer.loss_history[-1]["total"]
+
+    # Stage 2: L-BFGS
+    opt_lbfgs = torch.optim.LBFGS(tiny_model.parameters(), lr=1.0, max_iter=10)
+    trainer.train(3, opt_lbfgs, losses, verbose=False, log_every=0)
+
+    # History should contain both stages
+    assert len(trainer.loss_history) == 8  # 5 + 3
+    # L-BFGS should improve on Adam's result
+    assert trainer.loss_history[-1]["total"] <= loss_after_adam

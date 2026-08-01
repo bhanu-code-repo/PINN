@@ -157,12 +157,27 @@ Four NS experiments covering the full spectrum:
 - Root README updated with `learn/` in directory tree and "Learn PINNs" section.
 - `learn/` added to ruff's extend-exclude.
 
+## 2026-08-01
+
+### Phase 10 — L-BFGS two-stage training
+**Pending commit**
+
+- `PINNTrainer.train()` — automatic L-BFGS support. Detects closure-based optimizers
+  (via `_is_closure_optimizer`) and uses `optimizer.step(closure)` pattern instead of
+  the standard `zero_grad → backward → step` flow. Both optimizer types support all
+  existing features (best-model saving, early stopping, callbacks, grad clipping).
+- `experiments/cylinder_wake/train.py` — two-stage training: `--lbfgs-epochs` and
+  `--lbfgs-lr` CLI flags. Adam for initial convergence, L-BFGS (strong Wolfe line search,
+  history_size=50) for refinement. Following Raissi et al. (2019) methodology.
+- `experiments/navier_stokes_inverse/train.py` — same two-stage pattern for Re inference.
+- 3 new trainer unit tests: L-BFGS basic, L-BFGS with save_best, two-stage Adam→L-BFGS.
+- 37 tests pass total (up from 34 at Phase 9).
+
 ---
 
 ## Roadmap / Deferred
 
 - **GitHub Actions CI** — run `pytest` + `ruff check` on push.
-- **Adam to L-BFGS two-stage training** — Adam for initial convergence, L-BFGS for refinement.
 - **Inverse-problem notebook** — walkthrough of the data-loss term methodology.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.

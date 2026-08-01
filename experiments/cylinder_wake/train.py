@@ -468,12 +468,18 @@ def solve_cylinder_wake(
     output_dir: str | None = None,
     show: bool = True,
     data_path: str | None = None,
+    lbfgs_epochs: int = 0,
+    lbfgs_lr: float = 1.0,
 ) -> dict:
     """Train, evaluate, and persist a cylinder wake inverse PINN run.
 
     Following Raissi et al. (2019): the network sees scattered (u, v)
     observations and infers λ₁, λ₂ while reconstructing the full field
     including the never-observed pressure.
+
+    Supports two-stage training: Adam for initial convergence, then
+    (optionally) L-BFGS for refinement. The paper used this two-stage
+    approach to achieve <1% error on λ₁, λ₂.
     """
     run_dir, device = init_run(EXPERIMENT, output_dir, seed)
 
@@ -482,6 +488,7 @@ def solve_cylinder_wake(
         "hidden_layers": hidden_layers, "n_train": n_train,
         "n_physics": n_physics, "lambda1_init": lambda1_init,
         "lambda2_init": lambda2_init, "seed": seed,
+        "lbfgs_epochs": lbfgs_epochs, "lbfgs_lr": lbfgs_lr,
     }
     logger.info("Config: {}", config)
 
@@ -515,10 +522,29 @@ def solve_cylinder_wake(
                 epoch, l1, LAMBDA_1_TRUE, l2, LAMBDA_2_TRUE,
             )
 
+    # Stage 1: Adam
     trainer.train(
         n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions,
         callbacks=[record_lambdas], save_best=run_dir / "best_model.pt",
     )
+
+    # Stage 2: L-BFGS refinement (optional)
+    if lbfgs_epochs > 0:
+        logger.info(
+            "Starting L-BFGS refinement: {} epochs, lr={}",
+            lbfgs_epochs, lbfgs_lr,
+        )
+        optimizer_lbfgs = torch.optim.LBFGS(
+            model.parameters(), lr=lbfgs_lr,
+            max_iter=50, max_eval=50,
+            history_size=50, line_search_fn="strong_wolfe",
+        )
+        trainer.train(
+            n_epochs=lbfgs_epochs, optimizer=optimizer_lbfgs,
+            loss_functions=loss_functions, callbacks=[record_lambdas],
+            save_best=run_dir / "best_model.pt",
+        )
+
     trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
 
@@ -587,6 +613,13 @@ def train(
         None, "--data-path",
         help="Path to cylinder_nektar_wake.mat (default: .workspace/input/).",
     ),
+    lbfgs_epochs: int = typer.Option(
+        0, "--lbfgs-epochs",
+        help="L-BFGS refinement epochs after Adam (0 = skip). Recommended: 500-2000.",
+    ),
+    lbfgs_lr: float = typer.Option(
+        1.0, "--lbfgs-lr", help="L-BFGS learning rate (default 1.0).",
+    ),
 ):
     """Infer NS parameters λ₁, λ₂ from cylinder wake DNS data (Raissi 2019)."""
     show_banner("CYLINDER", "Cylinder Wake Inverse NS — Raissi et al. (2019)")
@@ -595,6 +628,7 @@ def train(
         n_train=n_train, n_physics=n_physics, lambda1_init=lambda1_init,
         lambda2_init=lambda2_init, seed=seed, output_dir=output_dir,
         show=show, data_path=data_path,
+        lbfgs_epochs=lbfgs_epochs, lbfgs_lr=lbfgs_lr,
     )
 
 

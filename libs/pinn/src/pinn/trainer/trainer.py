@@ -45,6 +45,11 @@ class PINNTrainer:
         self.loss_history: list[dict[str, float]] = []
         self._epoch = 0
 
+    @staticmethod
+    def _is_closure_optimizer(optimizer: torch.optim.Optimizer) -> bool:
+        """Check if the optimizer requires a closure (e.g. L-BFGS)."""
+        return isinstance(optimizer, torch.optim.LBFGS)
+
     def train(
         self,
         n_epochs: int,
@@ -62,9 +67,15 @@ class PINNTrainer:
     ) -> list[dict[str, float]]:
         """Run the full-batch training loop.
 
+        Supports both standard optimizers (Adam, SGD) and closure-based
+        optimizers (L-BFGS). L-BFGS is detected automatically and the
+        training step uses the required ``optimizer.step(closure)`` pattern.
+
         Args:
             n_epochs: Number of training epochs.
             optimizer: The PyTorch optimizer (already bound to model parameters).
+                Both standard (Adam, SGD) and closure-based (L-BFGS) optimizers
+                are supported.
             loss_functions: Mapping ``name -> fn(model) -> scalar tensor``. The
                 total loss is ``sum(weights[name] * fn(model))``.
             weights: Per-term weights. Missing entries default to ``1.0``.
@@ -90,9 +101,13 @@ class PINNTrainer:
         if weights is None:
             weights = {key: 1.0 for key in loss_functions}
 
+        use_closure = self._is_closure_optimizer(optimizer)
+        opt_name = "L-BFGS" if use_closure else type(optimizer).__name__
+
         logger.info(
-            "Starting training: {} epochs, loss terms {}, weights {}, device {}",
-            n_epochs, list(loss_functions), weights, self.device,
+            "Starting training: {} epochs, loss terms {}, weights {}, "
+            "optimizer {}, device {}",
+            n_epochs, list(loss_functions), weights, opt_name, self.device,
         )
 
         best_loss = float("inf")
@@ -107,38 +122,50 @@ class PINNTrainer:
 
         for epoch in pbar:
             self._epoch = epoch
-            optimizer.zero_grad()
-
-            total_loss = torch.zeros((), device=self.device)
             epoch_losses: dict[str, float] = {}
 
-            # 1. Compute weighted losses
-            for name, loss_fn in loss_functions.items():
-                loss_value = loss_fn(self.model)
-                total_loss = total_loss + weights.get(name, 1.0) * loss_value
-                epoch_losses[name] = loss_value.item()
+            if use_closure:
+                # L-BFGS requires a closure that recomputes the loss.
+                # epoch_losses is bound via default arg to satisfy B023.
+                def closure(epoch_losses=epoch_losses):
+                    optimizer.zero_grad()
+                    total = torch.zeros((), device=self.device)
+                    for name, loss_fn in loss_functions.items():
+                        loss_value = loss_fn(self.model)
+                        total = total + weights.get(name, 1.0) * loss_value
+                        epoch_losses[name] = loss_value.item()
+                    total.backward()
+                    if grad_clip is not None:
+                        torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip)
+                    epoch_losses["total"] = total.item()
+                    return total
 
-            # 2. Backward pass
-            total_loss.backward()
+                optimizer.step(closure)
+            else:
+                # Standard optimizer (Adam, SGD, etc.)
+                optimizer.zero_grad()
+                total_loss = torch.zeros((), device=self.device)
+                for name, loss_fn in loss_functions.items():
+                    loss_value = loss_fn(self.model)
+                    total_loss = total_loss + weights.get(name, 1.0) * loss_value
+                    epoch_losses[name] = loss_value.item()
+                total_loss.backward()
+                if grad_clip is not None:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip)
+                optimizer.step()
+                epoch_losses["total"] = total_loss.item()
 
-            # 3. Gradient clipping
-            if grad_clip is not None:
-                torch.nn.utils.clip_grad_norm_(self.model.parameters(), grad_clip)
-
-            optimizer.step()
-
-            # 4. Log history
-            epoch_losses["total"] = total_loss.item()
+            # Log history
             self.loss_history.append(epoch_losses)
 
-            # 5. Periodic epoch summary
+            # Periodic epoch summary
             if log_every > 0 and epoch % log_every == 0:
                 grad_norm = self._grad_norm()
                 terms = ", ".join(f"{k}={v:.4e}" for k, v in epoch_losses.items())
                 logger.debug("epoch {}/{} | {} | grad_norm={:.4e}",
                              epoch, n_epochs, terms, grad_norm)
 
-            # 6. Best-model tracking + early stopping
+            # Best-model tracking + early stopping
             if epoch_losses["total"] < best_loss - early_stop_threshold:
                 best_loss = epoch_losses["total"]
                 early_stop_counter = 0
@@ -156,11 +183,11 @@ class PINNTrainer:
                 )
                 break
 
-            # 7. Progress bar
+            # Progress bar
             if verbose:
                 pbar.set_postfix({"Loss": f"{epoch_losses['total']:.4e}"})
 
-            # 8. User callbacks
+            # User callbacks
             if callbacks:
                 for callback in callbacks:
                     callback(epoch, epoch_losses)

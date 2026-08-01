@@ -324,8 +324,14 @@ def solve_inverse_ns(
     seed: int = 42,
     output_dir: str | None = None,
     show: bool = True,
+    lbfgs_epochs: int = 0,
+    lbfgs_lr: float = 1.0,
 ) -> dict:
-    """Train, evaluate, and persist an inverse NS PINN run."""
+    """Train, evaluate, and persist an inverse NS PINN run.
+
+    Supports two-stage training: Adam for initial convergence, then
+    (optionally) L-BFGS for refinement of the inferred Re.
+    """
     run_dir, device = init_run(EXPERIMENT, output_dir, seed)
 
     config = {
@@ -333,6 +339,7 @@ def solve_inverse_ns(
         "hidden_layers": hidden_layers, "n_physics": n_physics,
         "n_obs": n_obs, "re_true": re_true, "noise": noise,
         "log_re_init": float(np.log(re_init)), "seed": seed,
+        "lbfgs_epochs": lbfgs_epochs, "lbfgs_lr": lbfgs_lr,
     }
     logger.info("Config: {}", config)
 
@@ -353,10 +360,29 @@ def solve_inverse_ns(
         if epoch % 1000 == 0:
             logger.info("Epoch {}: Re = {:.4f} (true: {})", epoch, re_history[-1], re_true)
 
+    # Stage 1: Adam
     trainer.train(
         n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions,
         callbacks=[record_re], save_best=run_dir / "best_model.pt",
     )
+
+    # Stage 2: L-BFGS refinement (optional)
+    if lbfgs_epochs > 0:
+        logger.info(
+            "Starting L-BFGS refinement: {} epochs, lr={}",
+            lbfgs_epochs, lbfgs_lr,
+        )
+        optimizer_lbfgs = torch.optim.LBFGS(
+            model.parameters(), lr=lbfgs_lr,
+            max_iter=50, max_eval=50,
+            history_size=50, line_search_fn="strong_wolfe",
+        )
+        trainer.train(
+            n_epochs=lbfgs_epochs, optimizer=optimizer_lbfgs,
+            loss_functions=loss_functions, callbacks=[record_re],
+            save_best=run_dir / "best_model.pt",
+        )
+
     trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
 
@@ -411,6 +437,13 @@ def train(
         help="Artifact directory (default: outputs/navier_stokes_inverse/<timestamp>).",
     ),
     show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
+    lbfgs_epochs: int = typer.Option(
+        0, "--lbfgs-epochs",
+        help="L-BFGS refinement epochs after Adam (0 = skip). Recommended: 500-2000.",
+    ),
+    lbfgs_lr: float = typer.Option(
+        1.0, "--lbfgs-lr", help="L-BFGS learning rate (default 1.0).",
+    ),
 ):
     """Infer Re from noisy velocity data — the PINN inverse problem."""
     show_banner("NS INVERSE", "Inverse Navier-Stokes — Infer Re from Data (Kovasznay)")
@@ -418,6 +451,7 @@ def train(
         epochs=epochs, lr=lr, hidden_neurons=neurons, hidden_layers=layers,
         n_physics=n_physics, n_obs=n_obs, re_true=re_true, noise=noise,
         re_init=re_init, seed=seed, output_dir=output_dir, show=show,
+        lbfgs_epochs=lbfgs_epochs, lbfgs_lr=lbfgs_lr,
     )
 
 

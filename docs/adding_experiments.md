@@ -350,6 +350,33 @@ trainer.train(
 )
 ```
 
+Both standard (Adam, SGD) and closure-based (L-BFGS) optimizers are supported.
+L-BFGS is detected automatically and uses the `optimizer.step(closure)` pattern.
+
+### Two-stage training (Adam → L-BFGS)
+
+For inverse problems and hard-to-converge forward problems, a two-stage approach
+works well: Adam for initial convergence (robust, handles noisy gradients), then
+L-BFGS for refinement (quasi-Newton, better on smooth landscapes):
+
+```python
+# Stage 1: Adam
+optimizer_adam = torch.optim.Adam(model.parameters(), lr=1e-3)
+trainer.train(n_epochs=20000, optimizer=optimizer_adam, ...)
+
+# Stage 2: L-BFGS refinement
+optimizer_lbfgs = torch.optim.LBFGS(
+    model.parameters(), lr=1.0,
+    max_iter=50, max_eval=50,
+    history_size=50, line_search_fn="strong_wolfe",
+)
+trainer.train(n_epochs=1000, optimizer=optimizer_lbfgs, ...)
+```
+
+The trainer's loss history accumulates across both stages. See
+`experiments/cylinder_wake/` and `experiments/navier_stokes_inverse/` for
+production examples with `--lbfgs-epochs` CLI flags.
+
 ## Design Patterns Worth Knowing
 
 ### Spectral bias defeat (Ansatz)
