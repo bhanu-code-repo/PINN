@@ -19,7 +19,7 @@ import torch.autograd as autograd
 import torch.nn as nn
 import typer
 from loguru import logger
-from pinn import PINN, PINNTrainer, plot_contour
+from pinn import PINN, PINNTrainer, adaptive_train, plot_contour
 
 from experiments.common import (
     compare_runs,
@@ -53,22 +53,32 @@ def build_model(config: dict) -> nn.Module:
     )
 
 
+def _pde_residual(model, x, t, nu):
+    """Per-point Burgers PDE residual: u_t + u*u_x - nu*u_xx."""
+    u = model(torch.cat([x, t], dim=1))
+    u_t = autograd.grad(u, t, torch.ones_like(u), create_graph=True)[0]
+    u_x = autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
+    u_xx = autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
+    return u_t + u * u_x - nu * u_xx
+
+
 def build_losses(nu: float, device: torch.device) -> dict:
     """Create the named loss functions (closures own their collocation points)."""
+    x_physics = torch.rand(5000, 1) * (X_DOMAIN[1] - X_DOMAIN[0]) + X_DOMAIN[0]
+    t_physics = torch.rand(5000, 1) * (T_DOMAIN[1] - T_DOMAIN[0]) + T_DOMAIN[0]
+    physics_points = torch.cat([x_physics, t_physics], dim=1).to(device)
+    return build_losses_with_points(nu, device, physics_points)
+
+
+def build_losses_with_points(
+    nu: float, device: torch.device, physics_points: torch.Tensor,
+) -> dict:
+    """Create loss functions using a specific set of physics collocation points."""
     x_ic = torch.linspace(*X_DOMAIN, 100).view(-1, 1).to(device)
     t_bc = torch.linspace(*T_DOMAIN, 50).view(-1, 1).to(device)
 
-    x_physics = torch.rand(5000, 1) * (X_DOMAIN[1] - X_DOMAIN[0]) + X_DOMAIN[0]
-    t_physics = torch.rand(5000, 1) * (T_DOMAIN[1] - T_DOMAIN[0]) + T_DOMAIN[0]
-    x_physics = x_physics.to(device).requires_grad_(True)
-    t_physics = t_physics.to(device).requires_grad_(True)
-
-    def pde_residual(model, x, t):
-        u = model(torch.cat([x, t], dim=1))
-        u_t = autograd.grad(u, t, torch.ones_like(u), create_graph=True)[0]
-        u_x = autograd.grad(u, x, torch.ones_like(u), create_graph=True)[0]
-        u_xx = autograd.grad(u_x, x, torch.ones_like(u_x), create_graph=True)[0]
-        return u_t + u * u_x - nu * u_xx
+    x_phys = physics_points[:, 0:1].clone().requires_grad_(True)
+    t_phys = physics_points[:, 1:2].clone().requires_grad_(True)
 
     def ic_loss(model):
         u = model(torch.cat([x_ic, torch.zeros_like(x_ic)], dim=1))
@@ -81,9 +91,27 @@ def build_losses(nu: float, device: torch.device) -> dict:
         return torch.mean(u_left**2 + u_right**2)
 
     def physics_loss(model):
-        return torch.mean(pde_residual(model, x_physics, t_physics) ** 2)
+        return torch.mean(_pde_residual(model, x_phys, t_phys, nu) ** 2)
 
     return {"ic": ic_loss, "bc": bc_loss, "physics": physics_loss}
+
+
+def _burgers_residual_fn(nu: float):
+    """Return a residual function for RAR point selection."""
+    def residual_fn(model, points):
+        x = points[:, 0:1].clone().requires_grad_(True)
+        t = points[:, 1:2].clone().requires_grad_(True)
+        return _pde_residual(model, x, t, nu).squeeze(-1)
+    return residual_fn
+
+
+def _burgers_candidate_sampler(device: torch.device):
+    """Return a sampler that generates random (x, t) candidates in the domain."""
+    def sampler(n):
+        x = torch.rand(n, 1) * (X_DOMAIN[1] - X_DOMAIN[0]) + X_DOMAIN[0]
+        t = torch.rand(n, 1) * (T_DOMAIN[1] - T_DOMAIN[0]) + T_DOMAIN[0]
+        return torch.cat([x, t], dim=1).to(device)
+    return sampler
 
 
 def evaluate(model: nn.Module, device: torch.device) -> tuple[dict, dict]:
@@ -147,6 +175,9 @@ def solve_burgers_equation(
     seed: int = 42,
     output_dir: str | None = None,
     show: bool = True,
+    rar: bool = False,
+    rar_phases: int = 5,
+    rar_points: int = 500,
 ) -> dict:
     """Train, evaluate, and persist a Burgers' equation PINN run.
 
@@ -162,18 +193,39 @@ def solve_burgers_equation(
     config = {
         "epochs": epochs, "lr": lr, "hidden_neurons": hidden_neurons,
         "hidden_layers": hidden_layers, "nu": nu, "seed": seed,
+        "rar": rar, "rar_phases": rar_phases, "rar_points": rar_points,
     }
     logger.info("Config: {}", config)
 
-    # 1. Model, losses, trainer
+    # 1. Model + trainer
     model = build_model(config)
-    loss_functions = build_losses(nu, device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     trainer = PINNTrainer(model, device=device)
 
-    # 2. Train
-    trainer.train(n_epochs=epochs, optimizer=optimizer, loss_functions=loss_functions, save_best=run_dir / "best_model.pt")
-    trainer.save_checkpoint(run_dir / "checkpoint.pt", optimizer=optimizer, metadata=config)
+    # 2. Train (standard or RAR)
+    if rar:
+        initial_points = _burgers_candidate_sampler(device)(5000)
+        rar_result = adaptive_train(
+            trainer=trainer,
+            build_losses=lambda pts: build_losses_with_points(nu, device, pts),
+            residual_fn=_burgers_residual_fn(nu),
+            candidate_sampler=_burgers_candidate_sampler(device),
+            initial_points=initial_points,
+            optimizer_fn=lambda m: torch.optim.Adam(m.parameters(), lr=lr),
+            n_phases=rar_phases,
+            epochs_per_phase=epochs // rar_phases,
+            n_candidates=10_000,
+            n_select=rar_points,
+            save_best=run_dir / "best_model.pt",
+        )
+        config["rar_points_per_phase"] = rar_result["points_per_phase"]
+    else:
+        loss_functions = build_losses(nu, device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        trainer.train(
+            n_epochs=epochs, optimizer=optimizer,
+            loss_functions=loss_functions, save_best=run_dir / "best_model.pt",
+        )
+    trainer.save_checkpoint(run_dir / "checkpoint.pt", metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
 
     # 3. Evaluate
@@ -221,6 +273,9 @@ def train(
         help="Artifact directory (default: outputs/burgers/<timestamp>).",
     ),
     show: bool = typer.Option(True, "--show/--no-show", help="Display plots interactively."),
+    rar: bool = typer.Option(False, "--rar", help="Enable Residual-based Adaptive Refinement."),
+    rar_phases: int = typer.Option(5, "--rar-phases", help="Number of RAR refinement phases."),
+    rar_points: int = typer.Option(500, "--rar-points", help="New collocation points per phase."),
 ):
     """Train a PINN to solve the 1D Burgers' equation."""
     show_banner("BURGERS", "1D Burgers' Equation PINN Solver")
@@ -233,6 +288,9 @@ def train(
         seed=seed,
         output_dir=output_dir,
         show=show,
+        rar=rar,
+        rar_phases=rar_phases,
+        rar_points=rar_points,
     )
 
 

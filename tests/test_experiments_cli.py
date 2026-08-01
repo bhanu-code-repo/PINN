@@ -194,6 +194,18 @@ def test_parametric_schrodinger_ensemble_lifecycle(tmp_path, monkeypatch):
     assert "No runs" not in result.output
 
 
+def test_burgers_rar_lifecycle(tmp_path):
+    """Burgers with RAR: train with --rar flag produces artifacts."""
+    run_dir = tmp_path / "burgers" / "rar_run"
+
+    invoke(burgers_app, [
+        "train", "-e", "6", "--seed", "0", "--no-show", "-o", str(run_dir),
+        "--rar", "--rar-phases", "2", "--rar-points", "10",
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+
+
 def test_taylor_green_lifecycle(tmp_path, monkeypatch):
     """Taylor-Green vortex: train -> predict -> compare."""
     run_dir = tmp_path / "taylor_green" / "run1"
