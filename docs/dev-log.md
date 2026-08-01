@@ -211,7 +211,7 @@ Four NS experiments covering the full spectrum:
 - Slow convergence tests excluded from CI (via `-m 'not slow'` in pytest config).
 
 ### Phase 13 — Convergence validation tests for NS experiments
-**Pending commit**
+**Commit:** `c754407` Add parametric Taylor-Green experiment and NS convergence tests
 
 - 3 new `@pytest.mark.slow` convergence tests in `tests/test_convergence.py`:
   - `test_taylor_green_loss_drops` — 2000 epochs, asserts 10x loss reduction. Exercises
@@ -224,7 +224,7 @@ Four NS experiments covering the full spectrum:
 - 62 total tests (57 fast + 5 slow), up from 59 at Phase 12.
 
 ### Phase 14 — Parametric Taylor-Green (Reynolds sweep)
-**Pending commit**
+**Commit:** `c754407` Add parametric Taylor-Green experiment and NS convergence tests
 
 - `experiments/parametric_taylor_green/` — parametric PINN for the Taylor-Green vortex
   over `nu in [0.001, 0.1]` (Re = 10 to 1000). Network takes `(x, y, t, log10(nu)_norm)`
