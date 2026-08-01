@@ -283,6 +283,30 @@ Four NS experiments covering the full spectrum:
 - `learn/README.md` — updated learning path table (9 notebooks, ~5 hours).
 - `README.md` — updated directory tree and notebook count.
 
+### Phase 17 — Residual-based Adaptive Refinement (RAR)
+**Commit:** `02f2a59` Add Residual-based Adaptive Refinement (RAR) to pinn library
+**PR:** #2 (feature/adaptive-collocation → main)
+
+- `libs/pinn/src/pinn/rar.py` — new RAR module with two public functions:
+  - `select_rar_points(model, candidates, residual_fn, n_select)` — scores candidate
+    points by PDE residual magnitude, returns top-K. Handles multi-component residuals
+    via L2-norm.
+  - `adaptive_train(trainer, build_losses, residual_fn, ...)` — multi-phase training
+    orchestrator: train for E epochs → evaluate residuals on dense candidate set →
+    append top-K points to collocation set → rebuild loss closures → repeat for P phases.
+- `experiments/burgers/train.py` — RAR integration as proof-of-concept:
+  - New CLI flags: `--rar`, `--rar-phases` (default 5), `--rar-points` (default 500).
+  - Refactored `build_losses` into `build_losses_with_points()` to support point set
+    rebuilds between RAR phases.
+  - Extracted `_pde_residual()` for shared use between training and RAR point selection.
+- `libs/pinn/tests/test_rar.py` — 11 unit tests covering point selection (correct count,
+  highest residuals selected, detached outputs, multi-dim input, multi-component residuals)
+  and adaptive training (point growth per phase, loss history continuity, single-phase
+  no-op, loss decrease, weight forwarding).
+- `tests/test_experiments_cli.py` — 1 new CLI smoke test for `--rar` flag.
+- 70 total fast tests (up from 58 pre-RAR), all passing.
+- Exported `select_rar_points` and `adaptive_train` from `pinn` package `__init__.py`.
+
 ---
 
 ## Roadmap / Deferred
@@ -290,5 +314,4 @@ Four NS experiments covering the full spectrum:
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.
-- **Adaptive collocation (RAR)** — residual-based adaptive refinement for shock convergence.
 - **Weights & Biases integration** — experiment tracking and hyperparameter sweeps.
