@@ -1,3 +1,8 @@
+"""Plotting utilities — contour, 1D comparison, and loss comparison plots.
+
+Copyright 2026 Bhanu Thakur. All rights reserved.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 from loguru import logger
@@ -24,7 +29,7 @@ def plot_contour(
     clabel: str = "z",
     save_path: str | None = None,
     show: bool = True,
-):
+) -> None:
     """Plot a standard filled contour plot.
 
     Args:
@@ -58,7 +63,7 @@ def plot_comparison_1d(
     pred_label: str = "Prediction",
     save_path: str | None = None,
     show: bool = True,
-):
+) -> None:
     """Plot a 1D comparison between exact and predicted values.
 
     Args:
@@ -89,7 +94,7 @@ def plot_loss_comparison(
     title: str = "Loss Comparison",
     save_path: str | None = None,
     show: bool = True,
-):
+) -> None:
     """Overlay multiple loss histories on one log-scale plot.
 
     Useful for comparing experiments or hyperparameter settings.

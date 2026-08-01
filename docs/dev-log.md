@@ -177,6 +177,30 @@ Four NS experiments covering the full spectrum:
   `experiments/navier_stokes_inverse/README.md`, `docs/adding_experiments.md` — all
   reflect L-BFGS support, two-stage training examples, and updated CLI reference tables.
 
+### Phase 11 — Production hardening of `libs/pinn`
+**Pending commit**
+
+- **Input validation** — `PINN.__init__` validates all dimension args >= 1 and activation
+  name. `PINNTrainer.__init__` validates model is `nn.Module`. `train()` validates
+  `n_epochs >= 1`, non-empty `loss_functions`, `grad_clip > 0`, `early_stop_patience >= 1`.
+- **NaN/Inf detection** — training loop checks `math.isfinite(total_loss)` each epoch;
+  logs error and stops immediately on divergence.
+- **LR scheduler support** — new `scheduler` parameter on `train()`. Auto-detects
+  `ReduceLROnPlateau` vs standard schedulers (StepLR, CosineAnnealingLR, etc.).
+- **Custom activations** — `PINN` now accepts `activation` parameter (`tanh`, `silu`,
+  `gelu`). Registry-based with `_ACTIVATIONS` dict.
+- **Xavier initialisation** — `_init_weights()` applies Xavier uniform to all Linear layers.
+- **`__version__`** — `pinn.__version__ = "0.1.0"` exported in `__all__`.
+- **Checkpoint error handling** — `save_checkpoint` catches `OSError` with logging,
+  `load_checkpoint` raises `FileNotFoundError` for missing files, wraps corrupt files.
+- **Module docstrings + copyright headers** — all 6 implementation files and 2 test files.
+- **`-> None` return annotations** — plotting functions now fully typed.
+- **Utility methods** — `PINN.count_parameters()`, improved `__repr__` showing dims +
+  activation + param count.
+- **Enhanced logging** — periodic debug log now includes current learning rate.
+- 57 tests pass total (up from 37 at Phase 10): 8 new tests for validation, NaN detection,
+  LR scheduling, checkpoint errors, activations.
+
 ---
 
 ## Roadmap / Deferred

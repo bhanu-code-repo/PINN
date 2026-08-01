@@ -1,3 +1,8 @@
+"""Reproducibility — seed all random number generators in one call.
+
+Copyright 2026 Bhanu Thakur. All rights reserved.
+"""
+
 import random
 
 import numpy as np

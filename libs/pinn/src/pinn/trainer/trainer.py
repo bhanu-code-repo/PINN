@@ -1,3 +1,11 @@
+"""PINNTrainer — generic multi-loss training loop with checkpointing and monitoring.
+
+Copyright 2026 Bhanu Thakur. All rights reserved.
+"""
+
+from __future__ import annotations
+
+import math
 from collections.abc import Callable
 from pathlib import Path
 
@@ -25,6 +33,8 @@ class PINNTrainer:
     - per-epoch loss history (``self.loss_history``)
     - progress bar (tqdm) and structured logging (loguru)
     - optional early stopping and gradient clipping
+    - NaN/Inf detection with automatic early termination
+    - optional learning rate scheduling
     - optional user callbacks per epoch (e.g. custom monitoring)
     - checkpoint save/load (model + optimizer + history)
     - best-model checkpointing (``save_best``) with optional restore
@@ -35,9 +45,16 @@ class PINNTrainer:
     Args:
         model: The model to train (any ``nn.Module``; moved to ``device``).
         device: Target device. Defaults to CUDA when available, else CPU.
+
+    Raises:
+        TypeError: If ``model`` is not an ``nn.Module``.
     """
 
     def __init__(self, model: nn.Module, device: torch.device | None = None):
+        if not isinstance(model, nn.Module):
+            raise TypeError(
+                f"model must be an nn.Module, got {type(model).__name__}"
+            )
         if device is None:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = device
@@ -64,6 +81,7 @@ class PINNTrainer:
         callbacks: list[EpochCallback] | None = None,
         save_best: str | Path | None = None,
         restore_best: bool = True,
+        scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ) -> list[dict[str, float]]:
         """Run the full-batch training loop.
 
@@ -72,12 +90,12 @@ class PINNTrainer:
         training step uses the required ``optimizer.step(closure)`` pattern.
 
         Args:
-            n_epochs: Number of training epochs.
+            n_epochs: Number of training epochs (must be >= 1).
             optimizer: The PyTorch optimizer (already bound to model parameters).
                 Both standard (Adam, SGD) and closure-based (L-BFGS) optimizers
                 are supported.
-            loss_functions: Mapping ``name -> fn(model) -> scalar tensor``. The
-                total loss is ``sum(weights[name] * fn(model))``.
+            loss_functions: Mapping ``name -> fn(model) -> scalar tensor``. Must
+                be non-empty.
             weights: Per-term weights. Missing entries default to ``1.0``.
             verbose: Show a tqdm progress bar with the live total loss.
             log_every: Log an epoch summary (all loss terms + grad norm) every N
@@ -86,6 +104,7 @@ class PINNTrainer:
                 consecutive epochs. ``None`` disables early stopping.
             early_stop_threshold: Minimum decrease that counts as improvement.
             grad_clip: If set, clip the global gradient norm to this value.
+                Must be positive.
             callbacks: Optional list of ``fn(epoch, epoch_losses)`` called at
                 the end of every epoch (after the optimizer step).
             save_best: If set, save a checkpoint of the best model (lowest
@@ -93,11 +112,31 @@ class PINNTrainer:
             restore_best: If ``True`` (default) and ``save_best`` is set,
                 restore the best model weights at the end of training. This
                 ensures the final model is the best one found, not the last.
+            scheduler: Optional learning rate scheduler. ``scheduler.step()``
+                is called after each epoch. Compatible with any PyTorch LR
+                scheduler (StepLR, CosineAnnealingLR, ReduceLROnPlateau, etc.).
+                For ReduceLROnPlateau, the total loss is passed automatically.
 
         Returns:
             The loss history: one ``{name: value, ..., 'total': value}`` dict
             per epoch (also stored on ``self.loss_history``).
+
+        Raises:
+            ValueError: If ``n_epochs < 1``, ``loss_functions`` is empty, or
+                ``grad_clip`` is not positive.
         """
+        # --- Input validation ---
+        if n_epochs < 1:
+            raise ValueError(f"n_epochs must be >= 1, got {n_epochs}")
+        if not loss_functions:
+            raise ValueError("loss_functions must be a non-empty dict")
+        if grad_clip is not None and grad_clip <= 0:
+            raise ValueError(f"grad_clip must be positive, got {grad_clip}")
+        if early_stop_patience is not None and early_stop_patience < 1:
+            raise ValueError(
+                f"early_stop_patience must be >= 1, got {early_stop_patience}"
+            )
+
         if weights is None:
             weights = {key: 1.0 for key in loss_functions}
 
@@ -155,6 +194,16 @@ class PINNTrainer:
                 optimizer.step()
                 epoch_losses["total"] = total_loss.item()
 
+            # --- NaN/Inf detection ---
+            if not math.isfinite(epoch_losses["total"]):
+                logger.error(
+                    "NaN/Inf detected at epoch {}/{} — stopping training. "
+                    "Loss values: {}",
+                    epoch, n_epochs, epoch_losses,
+                )
+                self.loss_history.append(epoch_losses)
+                break
+
             # Log history
             self.loss_history.append(epoch_losses)
 
@@ -162,8 +211,11 @@ class PINNTrainer:
             if log_every > 0 and epoch % log_every == 0:
                 grad_norm = self._grad_norm()
                 terms = ", ".join(f"{k}={v:.4e}" for k, v in epoch_losses.items())
-                logger.debug("epoch {}/{} | {} | grad_norm={:.4e}",
-                             epoch, n_epochs, terms, grad_norm)
+                lr = optimizer.param_groups[0]["lr"]
+                logger.debug(
+                    "epoch {}/{} | {} | grad_norm={:.4e} | lr={:.2e}",
+                    epoch, n_epochs, terms, grad_norm, lr,
+                )
 
             # Best-model tracking + early stopping
             if epoch_losses["total"] < best_loss - early_stop_threshold:
@@ -191,6 +243,13 @@ class PINNTrainer:
             if callbacks:
                 for callback in callbacks:
                     callback(epoch, epoch_losses)
+
+            # Learning rate scheduling
+            if scheduler is not None:
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(epoch_losses["total"])
+                else:
+                    scheduler.step()
 
         # Restore best model weights if requested
         if save_best is not None and restore_best and save_best.exists():
@@ -235,6 +294,9 @@ class PINNTrainer:
 
         Returns:
             The path the checkpoint was written to.
+
+        Raises:
+            OSError: If the file cannot be written.
         """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -245,7 +307,11 @@ class PINNTrainer:
             "epoch": self._epoch,
             "metadata": metadata or {},
         }
-        torch.save(checkpoint, path)
+        try:
+            torch.save(checkpoint, path)
+        except OSError:
+            logger.exception("Failed to save checkpoint to {}", path)
+            raise
         logger.info("Checkpoint saved to {}", path)
         return path
 
@@ -263,8 +329,19 @@ class PINNTrainer:
 
         Returns:
             The checkpoint's ``metadata`` dict.
+
+        Raises:
+            FileNotFoundError: If ``path`` does not exist.
+            RuntimeError: If the checkpoint is corrupt or incompatible.
         """
-        checkpoint = torch.load(Path(path), map_location=self.device, weights_only=False)
+        path = Path(path)
+        if not path.exists():
+            raise FileNotFoundError(f"Checkpoint not found: {path}")
+        try:
+            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        except Exception:
+            logger.exception("Failed to load checkpoint from {}", path)
+            raise
         self.model.load_state_dict(checkpoint["model_state"])
         if optimizer is not None and checkpoint.get("optimizer_state") is not None:
             optimizer.load_state_dict(checkpoint["optimizer_state"])

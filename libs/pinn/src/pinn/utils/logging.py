@@ -1,3 +1,8 @@
+"""Logging configuration — loguru console and file sinks.
+
+Copyright 2026 Bhanu Thakur. All rights reserved.
+"""
+
 import sys
 from pathlib import Path
 

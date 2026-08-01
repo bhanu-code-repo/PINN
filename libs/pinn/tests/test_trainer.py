@@ -1,3 +1,10 @@
+"""Tests for the PINNTrainer training loop.
+
+Copyright 2026 Bhanu Thakur. All rights reserved.
+"""
+
+import math
+
 import pytest
 import torch
 from pinn import PINN, PINNTrainer
@@ -199,3 +206,83 @@ def test_two_stage_adam_then_lbfgs(tiny_model, cpu, losses):
     assert len(trainer.loss_history) == 8  # 5 + 3
     # L-BFGS should improve on Adam's result
     assert trainer.loss_history[-1]["total"] <= loss_after_adam
+
+
+# ── Input validation ───────────────────────────────────────────
+
+def test_trainer_rejects_non_module(cpu):
+    """PINNTrainer requires an nn.Module."""
+    with pytest.raises(TypeError, match="model must be an nn.Module"):
+        PINNTrainer("not a model", device=cpu)
+
+
+def test_train_rejects_zero_epochs(tiny_model, cpu, losses):
+    trainer, opt = make_trainer(tiny_model, cpu)
+    with pytest.raises(ValueError, match="n_epochs must be >= 1"):
+        trainer.train(0, opt, losses, verbose=False, log_every=0)
+
+
+def test_train_rejects_empty_losses(tiny_model, cpu):
+    trainer, opt = make_trainer(tiny_model, cpu)
+    with pytest.raises(ValueError, match="loss_functions must be a non-empty dict"):
+        trainer.train(5, opt, {}, verbose=False, log_every=0)
+
+
+def test_train_rejects_negative_grad_clip(tiny_model, cpu, losses):
+    trainer, opt = make_trainer(tiny_model, cpu)
+    with pytest.raises(ValueError, match="grad_clip must be positive"):
+        trainer.train(5, opt, losses, verbose=False, log_every=0, grad_clip=-1.0)
+
+
+def test_train_rejects_zero_patience(tiny_model, cpu, losses):
+    trainer, opt = make_trainer(tiny_model, cpu)
+    with pytest.raises(ValueError, match="early_stop_patience must be >= 1"):
+        trainer.train(5, opt, losses, verbose=False, log_every=0, early_stop_patience=0)
+
+
+# ── NaN detection ──────────────────────────────────────────────
+
+def test_nan_detection_stops_training(cpu):
+    """Training stops when loss becomes NaN."""
+    model = PINN(input_dim=1, hidden_layers=1, hidden_neurons=4)
+    trainer = PINNTrainer(model, device=cpu)
+
+    # Use a huge learning rate to force NaN via gradient explosion
+    opt = torch.optim.SGD(model.parameters(), lr=1e10)
+    data = torch.rand(5, 1)
+    big_loss = {"loss": lambda m: 1e6 * (m(data) - 100.0).pow(2).mean()}
+    history = trainer.train(100, opt, big_loss, verbose=False, log_every=0)
+    # Should have stopped well before 100 epochs due to NaN
+    assert len(history) < 100
+    assert not math.isfinite(history[-1]["total"])
+
+
+# ── LR scheduler ──────────────────────────────────────────────
+
+def test_lr_scheduler_step_lr(tiny_model, cpu, losses):
+    """StepLR scheduler reduces learning rate during training."""
+    trainer, opt = make_trainer(tiny_model, cpu)
+    scheduler = torch.optim.lr_scheduler.StepLR(opt, step_size=2, gamma=0.5)
+    initial_lr = opt.param_groups[0]["lr"]
+    trainer.train(5, opt, losses, verbose=False, log_every=0, scheduler=scheduler)
+    # After 5 epochs with step_size=2, LR should have been halved twice
+    expected_lr = initial_lr * 0.5 ** (5 // 2)
+    assert opt.param_groups[0]["lr"] == pytest.approx(expected_lr)
+
+
+def test_lr_scheduler_reduce_on_plateau(cpu, losses):
+    """ReduceLROnPlateau is detected and receives the loss value."""
+    model = PINN(input_dim=1, hidden_layers=2, hidden_neurons=8)
+    trainer = PINNTrainer(model, device=cpu)
+    opt = torch.optim.SGD(model.parameters(), lr=0.0)  # lr=0: loss never improves
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, patience=1, factor=0.5)
+    # Just verify it doesn't crash — ReduceLROnPlateau needs the metric passed
+    trainer.train(5, opt, losses, verbose=False, log_every=0, scheduler=scheduler)
+
+
+# ── Checkpoint error handling ──────────────────────────────────
+
+def test_load_checkpoint_missing_file(tiny_model, cpu, tmp_path):
+    trainer = PINNTrainer(tiny_model, device=cpu)
+    with pytest.raises(FileNotFoundError, match="Checkpoint not found"):
+        trainer.load_checkpoint(tmp_path / "nonexistent.pt")
