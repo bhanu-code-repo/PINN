@@ -261,10 +261,34 @@ Four NS experiments covering the full spectrum:
   how it works, customisation.
 - Launch: `uv run streamlit run dashboard.py`.
 
+### Phase 16 — Inverse Navier-Stokes learning notebook
+
+- `learn/09_inverse_navier_stokes.ipynb` — advanced deep-dive notebook (~45 min):
+  - **Kovasznay flow** — exact steady Navier-Stokes solution for any Re, used as
+    ground truth for inverse inference.
+  - **Inverse PINN model** — `InverseNSPINN` with `log_re` as `nn.Parameter`,
+    joint optimization of network weights + physical parameter.
+  - **NS residual** — momentum-x, momentum-y, continuity terms computed via autograd.
+  - **Training with two losses** — data loss (match sparse observations) + physics
+    loss (NS residual), weighted combination.
+  - **Re convergence visualization** — watch learned Re converge from wrong initial
+    guess to true value over training.
+  - **Field evaluation** — full u, v, p field comparison against exact solution.
+  - **Pressure gauge invariance** — mean-subtract before comparison (pressure
+    defined up to additive constant in incompressible NS).
+  - **Streamfunction trick** — `u = psi_y`, `v = -psi_x` eliminates continuity
+    equation by construction. `StreamfunctionPINN` class provided.
+  - **6 exercises** including noise robustness, fewer observations, two-parameter
+    inference, streamfunction training.
+- `learn/README.md` — updated learning path table (9 notebooks, ~5 hours).
+- `README.md` — updated directory tree and notebook count.
+
 ---
 
 ## Roadmap / Deferred
 
-- **Inverse-problem notebook** — walkthrough of the data-loss term methodology.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
+- **ONNX/FastAPI export** — serve trained models for real-time inference.
+- **Adaptive collocation (RAR)** — residual-based adaptive refinement for shock convergence.
+- **Weights & Biases integration** — experiment tracking and hyperparameter sweeps.

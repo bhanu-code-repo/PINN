@@ -33,8 +33,9 @@ libraries, or prior PINN knowledge.
 | 06 | [Training Tricks That Matter](06_training_tricks.ipynb) | Loss weighting, spectral bias, ansatz, learning rate, best-model saving | 35 min |
 | 07 | [Parametric PINNs and Inverse Problems](07_parametric_and_inverse.ipynb) | One model for a whole family + infer unknown parameters from data | 40 min |
 | 08 | [Honest Assessment: When to Use PINNs](08_honest_assessment.ipynb) | Failure modes, alternatives, the decision framework | 25 min |
+| 09 | [Inverse Navier-Stokes](09_inverse_navier_stokes.ipynb) | Infer Reynolds number from flow data — Kovasznay flow, pressure gauge invariance, streamfunction trick | 45 min |
 
-**Total: ~4 hours of hands-on work.**
+**Total: ~5 hours of hands-on work.**
 
 ## How to Use
 
@@ -50,6 +51,7 @@ Work through the notebooks in order. Each one builds on the previous:
 - **04** is the "aha moment" — understanding the data/physics tradeoff
 - **05–07** progressively tackle harder problems
 - **08** gives you the honest picture for real-world decisions
+- **09** is an advanced deep-dive into inverse Navier-Stokes
 
 Every notebook is self-contained (runs independently) but references earlier
 concepts. Code cells are meant to be executed — the outputs tell the story.

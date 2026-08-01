@@ -32,7 +32,7 @@ PINN/
 │   ├── lid_driven_cavity/        # Lid-driven cavity — 2D steady NS, Ghia benchmark
 │   ├── navier_stokes_inverse/    # Inverse NS — infer Re from data (Kovasznay flow)
 │   └── cylinder_wake/            # Raissi cylinder wake — inverse NS with real DNS data
-├── learn/                        # Hands-on PINN course (8 notebooks, ~4 hours)
+├── learn/                        # Hands-on PINN course (9 notebooks, ~5 hours)
 │   ├── 01_what_are_pinns.ipynb       # Motivation, landscape, when to use
 │   ├── 02_autodiff_the_key_idea.ipynb # torch.autograd.grad deep dive
 │   ├── 03_first_pinn_from_scratch.ipynb # Solve u'=-u with raw PyTorch
@@ -40,7 +40,8 @@ PINN/
 │   ├── 05_pdes_and_boundary_conditions.ipynb # Burgers' equation from scratch
 │   ├── 06_training_tricks.ipynb      # Loss weighting, spectral bias, Ansatz
 │   ├── 07_parametric_and_inverse.ipynb # Parameters as inputs + learnable params
-│   └── 08_honest_assessment.ipynb    # Failure modes, alternatives, decision framework
+│   ├── 08_honest_assessment.ipynb    # Failure modes, alternatives, decision framework
+│   └── 09_inverse_navier_stokes.ipynb # Infer Re from flow data — Kovasznay, streamfunction
 ├── notebooks/                    # Experiment-specific analysis notebooks
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
@@ -58,7 +59,7 @@ PINN/
 
 ## Learn PINNs
 
-New to PINNs? The **[learn/](learn/)** directory is a hands-on course (8 notebooks, ~4 hours) that takes you from zero to solving your own equations. No prior PINN experience required — just Python, PyTorch basics, and some calculus. See [learn/README.md](learn/README.md) for the full learning path.
+New to PINNs? The **[learn/](learn/)** directory is a hands-on course (9 notebooks, ~5 hours) that takes you from zero to solving your own equations. No prior PINN experience required — just Python, PyTorch basics, and some calculus. See [learn/README.md](learn/README.md) for the full learning path.
 
 ```bash
 uv sync --all-packages
