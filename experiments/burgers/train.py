@@ -178,6 +178,8 @@ def solve_burgers_equation(
     rar: bool = False,
     rar_phases: int = 5,
     rar_points: int = 500,
+    use_wandb: bool = False,
+    wandb_project: str = "pinn",
 ) -> dict:
     """Train, evaluate, and persist a Burgers' equation PINN run.
 
@@ -196,6 +198,13 @@ def solve_burgers_equation(
         "rar": rar, "rar_phases": rar_phases, "rar_points": rar_points,
     }
     logger.info("Config: {}", config)
+
+    # W&B integration (optional)
+    callbacks = []
+    if use_wandb:
+        from pinn import wandb_callback, wandb_init
+        wandb_init(project=wandb_project, config=config, group=EXPERIMENT)
+        callbacks.append(wandb_callback(prefix="train/"))
 
     # 1. Model + trainer
     model = build_model(config)
@@ -216,6 +225,7 @@ def solve_burgers_equation(
             n_candidates=10_000,
             n_select=rar_points,
             save_best=run_dir / "best_model.pt",
+            callbacks=callbacks or None,
         )
         config["rar_points_per_phase"] = rar_result["points_per_phase"]
     else:
@@ -224,6 +234,7 @@ def solve_burgers_equation(
         trainer.train(
             n_epochs=epochs, optimizer=optimizer,
             loss_functions=loss_functions, save_best=run_dir / "best_model.pt",
+            callbacks=callbacks or None,
         )
     trainer.save_checkpoint(run_dir / "checkpoint.pt", metadata=config)
     trainer.plot_loss_history(show_total=True, save_path=run_dir / "loss_history.png", show=show)
@@ -257,6 +268,11 @@ def solve_burgers_equation(
         "Epochs Run": str(metrics["epochs_run"]),
         "Artifacts": str(run_dir),
     })
+
+    if use_wandb:
+        from pinn import wandb_finish
+        wandb_finish(run_dir)
+
     return metrics
 
 
@@ -276,6 +292,8 @@ def train(
     rar: bool = typer.Option(False, "--rar", help="Enable Residual-based Adaptive Refinement."),
     rar_phases: int = typer.Option(5, "--rar-phases", help="Number of RAR refinement phases."),
     rar_points: int = typer.Option(500, "--rar-points", help="New collocation points per phase."),
+    use_wandb: bool = typer.Option(False, "--wandb", help="Log to Weights & Biases."),
+    wandb_project: str = typer.Option("pinn", "--wandb-project", help="W&B project name."),
 ):
     """Train a PINN to solve the 1D Burgers' equation."""
     show_banner("BURGERS", "1D Burgers' Equation PINN Solver")
@@ -291,6 +309,8 @@ def train(
         rar=rar,
         rar_phases=rar_phases,
         rar_points=rar_points,
+        use_wandb=use_wandb,
+        wandb_project=wandb_project,
     )
 
 
