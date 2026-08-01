@@ -2,11 +2,11 @@
 
 Core library for building and training **Physics-Informed Neural Networks (PINNs)** in PyTorch.
 It provides the building blocks shared by every experiment in this monorepo: a configurable MLP
-backbone, a generic multi-loss trainer with checkpointing, reproducibility and logging helpers,
-and plotting utilities.
+backbone with selectable activations, a generic multi-loss trainer with checkpointing, LR
+scheduling, NaN detection, reproducibility and logging helpers, and plotting utilities.
 
 ```python
-from pinn import PINN, PINNTrainer, set_seed, setup_logging
+from pinn import PINN, PINNTrainer, set_seed, setup_logging, __version__
 ```
 
 ## Installation
@@ -24,6 +24,7 @@ Requires Python ≥ 3.11. Dependencies: `torch`, `numpy`, `matplotlib`, `tqdm`, 
 
 ```
 pinn/
+├── __init__.py        # public API + __version__
 ├── core/
 │   └── network.py     # PINN — fully-connected MLP backbone
 ├── trainer/
@@ -77,8 +78,8 @@ trainer.plot_loss_history(save_path="run/loss.png", show=False)
 ```
 
 Adapting to a new PDE means changing only steps 2–3: new collocation points, new residual, new
-IC/BC losses. See `experiments/` for three complete worked examples (ODE, shock-forming PDE,
-complex-valued PDE with periodic BCs).
+IC/BC losses. See `experiments/` for complete worked examples (ODE, shock-forming PDE,
+complex-valued PDE with periodic BCs, Navier-Stokes forward and inverse problems).
 
 ---
 
@@ -87,19 +88,40 @@ complex-valued PDE with periodic BCs).
 ### `PINN` — network backbone
 
 ```python
-PINN(input_dim: int, hidden_layers: int, hidden_neurons: int, output_dim: int = 1)
+PINN(
+    input_dim: int,
+    hidden_layers: int,
+    hidden_neurons: int,
+    output_dim: int = 1,
+    activation: str = "tanh",
+)
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `input_dim` | Number of input coordinates (`1` for `t`, `2` for `(x, t)`, ...) |
-| `hidden_layers` | Number of hidden layers |
-| `hidden_neurons` | Width of each hidden layer |
-| `output_dim` | Output channels — `2` for e.g. complex fields (`Re`, `Im`) |
+| `input_dim` | Number of input coordinates (`1` for `t`, `2` for `(x, t)`, ...). Must be ≥ 1. |
+| `hidden_layers` | Number of hidden layers. Must be ≥ 1. |
+| `hidden_neurons` | Width of each hidden layer. Must be ≥ 1. |
+| `output_dim` | Output channels — `2` for e.g. complex fields (`Re`, `Im`). Must be ≥ 1. |
+| `activation` | Activation function: `"tanh"` (default), `"silu"`, or `"gelu"`. |
 
-Architecture: `Linear(in → h) → Tanh → [Linear(h → h) → Tanh] × (L−1) → Linear(h → out)`.
-`tanh` is deliberate: PINN losses differentiate the output w.r.t. the *inputs*, often twice, so
-the activation must be smooth (ReLU's second derivative is zero).
+Architecture: `Linear(in → h) → Act → [Linear(h → h) → Act] × (L−1) → Linear(h → out)`.
+
+`tanh` is the default because PINN losses differentiate the output w.r.t. the *inputs*, often
+twice, so the activation must be smooth (ReLU's second derivative is zero). `silu` and `gelu`
+are smooth alternatives that may help in some problems.
+
+All weights are initialised with Xavier uniform (good default for smooth activations).
+
+**Input validation:** all dimension arguments are validated ≥ 1, and unknown activation names
+raise `ValueError` with a list of valid options.
+
+#### Utility methods
+
+```python
+model.count_parameters()  # total trainable parameters
+repr(model)               # e.g. "PINN(2 -> 64 -> 64 -> 64 -> 1, activation=Tanh, params=8,577)"
+```
 
 ### `PINNTrainer` — training loop
 
@@ -107,23 +129,40 @@ the activation must be smooth (ReLU's second derivative is zero).
 PINNTrainer(model: nn.Module, device: torch.device | None = None)   # device: auto CUDA/CPU
 ```
 
+Raises `TypeError` if `model` is not an `nn.Module`.
+
 #### `train(...)`
 
 ```python
 trainer.train(
-    n_epochs,                  # int: full-batch epochs
+    n_epochs,                  # int: full-batch epochs (must be >= 1)
     optimizer,                 # torch.optim.Optimizer (Adam, SGD, L-BFGS, ...)
-    loss_functions,            # dict[str, Callable]: name -> fn(model) -> scalar tensor
+    loss_functions,            # dict[str, Callable]: name -> fn(model) -> scalar tensor (non-empty)
     weights=None,              # dict[str, float]: per-term weights (default 1.0)
     verbose=True,              # tqdm progress bar
-    log_every=1000,            # loguru DEBUG summary (losses + grad norm) every N epochs
-    early_stop_patience=None,  # stop after N epochs without improvement
+    log_every=1000,            # loguru DEBUG summary (losses + grad norm + LR) every N epochs
+    early_stop_patience=None,  # stop after N epochs without improvement (>= 1)
     early_stop_threshold=1e-8, # minimum decrease that counts as improvement
-    grad_clip=None,            # clip global grad norm (helps stiff PDEs)
+    grad_clip=None,            # clip global grad norm (must be positive; helps stiff PDEs)
     callbacks=None,            # list of fn(epoch, epoch_losses) run each epoch
     save_best=None,            # path to save best model weights during training
     restore_best=True,         # restore best weights at end of training
+    scheduler=None,            # LR scheduler (StepLR, CosineAnnealingLR, ReduceLROnPlateau, ...)
 ) -> list[dict[str, float]]    # loss history (also on trainer.loss_history)
+```
+
+**Input validation:** raises `ValueError` for `n_epochs < 1`, empty `loss_functions`,
+non-positive `grad_clip`, or `early_stop_patience < 1`.
+
+**NaN/Inf detection:** if the total loss becomes non-finite at any epoch, training stops
+immediately with an error log. This prevents wasting compute on diverged runs.
+
+**LR scheduling:** pass any PyTorch scheduler via `scheduler`. `ReduceLROnPlateau` is
+auto-detected and receives the total loss; all other schedulers call `scheduler.step()`:
+
+```python
+scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs)
+trainer.train(n_epochs=10000, optimizer=optimizer, loss_functions=losses, scheduler=scheduler)
 ```
 
 Both standard (Adam, SGD) and **closure-based (L-BFGS)** optimizers are supported.
@@ -156,6 +195,10 @@ trainer.save_checkpoint("ckpt.pt", optimizer=opt, metadata={"seed": 42, "w0": 80
 meta = trainer.load_checkpoint("ckpt.pt", optimizer=opt)   # returns the metadata dict
 ```
 
+**Error handling:** `save_checkpoint` catches `OSError` and logs the failure before re-raising.
+`load_checkpoint` raises `FileNotFoundError` with a clear message if the path doesn't exist,
+and wraps corrupt/incompatible checkpoint errors with logging context.
+
 #### `plot_loss_history(show_total=False, save_path=None, show=True)`
 
 Post-training log-scale plot of all loss terms. `show=False` for headless runs.
@@ -170,6 +213,13 @@ points and models.
 Configures loguru: a tqdm-safe console sink (log lines don't mangle progress bars), plus an
 optional rotating file sink under `log_dir`. Call once at application startup; library code just
 uses `from loguru import logger`. Returns the log-file path (or `None`).
+
+### `__version__`
+
+```python
+from pinn import __version__
+print(__version__)  # "0.1.0"
+```
 
 ### Plotting utilities
 
@@ -198,8 +248,16 @@ def physics_loss(m):
 ```
 
 **Better convergence → Adam then L-BFGS.** The standard PINN recipe is Adam for exploration
-followed by L-BFGS for refinement. L-BFGS needs a closure-based step, so run it as a short
-manual loop after `trainer.train(...)` using the same loss callables.
+followed by L-BFGS for refinement. The trainer supports both optimizer types natively —
+L-BFGS is detected automatically and uses the closure-based step pattern. See
+`experiments/cylinder_wake` and `experiments/navier_stokes_inverse` for production examples.
+
+**Learning rate scheduling.** Pass a scheduler to `train()` for adaptive learning rates:
+
+```python
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2000, factor=0.5)
+trainer.train(..., scheduler=scheduler)
+```
 
 **Harder problems → adaptive loss weighting.** Hand-tuned weights (see the harmonic oscillator's
 `1e-4` physics weight) stop scaling as terms multiply. Techniques such as gradient-norm balancing
@@ -207,8 +265,9 @@ can be implemented as a `callback` that adjusts a shared `weights` dict during t
 
 **High-frequency solutions → input embeddings or ansatz.** Spectral bias makes plain MLPs fail on
 oscillatory solutions. Options: a problem-specific ansatz wrapper (see
-`experiments/harmonic_oscillator`), Fourier feature embeddings before the first layer, or SIREN
-activations — all composable with `PINNTrainer` since it accepts any `nn.Module`.
+`experiments/harmonic_oscillator`), Fourier feature embeddings before the first layer, or
+alternative activations (`silu`, `gelu` via the `activation` parameter) — all composable with
+`PINNTrainer` since it accepts any `nn.Module`.
 
 **GPU.** Everything follows `trainer.device` (auto-CUDA). Keep collocation tensors on the same
 device you pass to `PINNTrainer` — create them with `.to(device)` as the experiments do.
@@ -225,9 +284,20 @@ directory. `experiments/common.py` shows the pattern: every run directory is sel
   what keeps a single trainer valid for ODEs, PDEs, complex fields, and inverse problems.
 - **Logging over printing.** All library output goes through loguru; applications control sinks.
 - **Headless by default.** Nothing in the training path opens a matplotlib window.
+- **Fail fast.** Input validation catches misuse at construction time, not mid-training.
+  NaN detection stops diverged runs immediately instead of burning compute.
+- **Xavier initialisation.** All Linear layers use Xavier uniform init by default — a
+  reasonable starting point for smooth activations.
 
 ## Used By
 
 - `experiments/harmonic_oscillator` — damped oscillator ODE, learnable sinusoidal ansatz
 - `experiments/burgers` — Burgers' equation, shock formation
 - `experiments/schrodinger` — nonlinear Schrödinger, complex field + periodic BCs
+- `experiments/taylor_green` — 2D unsteady Navier-Stokes, exact solution
+- `experiments/lid_driven_cavity` — 2D steady NS, Ghia benchmark
+- `experiments/navier_stokes_inverse` — inverse NS, infer Re from noisy data
+- `experiments/cylinder_wake` — Raissi et al. (2019) DNS benchmark
+- `experiments/parametric_harmonic` — parametric PINN + deep ensembles
+- `experiments/parametric_burgers` — parametric PDE over viscosity
+- `experiments/parametric_schrodinger` — complex parametric PINN, soliton family
