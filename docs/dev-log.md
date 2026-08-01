@@ -178,7 +178,8 @@ Four NS experiments covering the full spectrum:
   reflect L-BFGS support, two-stage training examples, and updated CLI reference tables.
 
 ### Phase 11 — Production hardening of `libs/pinn`
-**Pending commit**
+**Commits:** `3f8baba` Production-harden pinn library: validation, NaN detection, LR scheduling, activations
+           `bc8a7a8` Update pinn README to reflect production-hardening changes
 
 - **Input validation** — `PINN.__init__` validates all dimension args >= 1 and activation
   name. `PINNTrainer.__init__` validates model is `nn.Module`. `train()` validates
