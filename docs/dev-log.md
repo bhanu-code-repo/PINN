@@ -235,6 +235,23 @@ Four NS experiments covering the full spectrum:
 - Lifecycle test in `test_experiments_cli.py` including out-of-range warning check.
 - 63 total tests (58 fast + 5 slow), up from 62 at Phase 13.
 
+### Phase 15 — Streamlit dashboard
+
+- `dashboard.py` — single-file Streamlit app for browsing and interacting with
+  PINN training runs. Four pages:
+  - **Overview** — lists all experiments and runs under `outputs/`, shows metrics
+    summary table.
+  - **Run Detail** — select a run to view config (from checkpoint metadata),
+    loss history plot (interactive Plotly), and training artifacts.
+  - **Compare** — side-by-side comparison of runs within an experiment, ranked
+    by loss or rel-L2.
+  - **Parametric Predictor** — interactive sliders for all 4 parametric experiments
+    (harmonic, Burgers, Schrodinger, Taylor-Green). Loads trained checkpoints,
+    runs inference on the fly, plots PINN prediction vs exact solution.
+    `@st.cache_resource` for model caching.
+- `streamlit>=1.45.0` added to `pyproject.toml` dependencies.
+- Launch: `uv run streamlit run dashboard.py`.
+
 ---
 
 ## Roadmap / Deferred
