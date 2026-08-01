@@ -64,8 +64,15 @@ CUSTOM_CSS = f"""
     }}
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] span {{
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3 {{
         color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }}
+    section[data-testid="stSidebar"] div[data-testid="stRadio"] label {{
+        font-size: 1.05rem !important;
     }}
 
     /* Metric cards */
