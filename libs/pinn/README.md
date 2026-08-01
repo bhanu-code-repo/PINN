@@ -112,7 +112,7 @@ PINNTrainer(model: nn.Module, device: torch.device | None = None)   # device: au
 ```python
 trainer.train(
     n_epochs,                  # int: full-batch epochs
-    optimizer,                 # torch.optim.Optimizer
+    optimizer,                 # torch.optim.Optimizer (Adam, SGD, L-BFGS, ...)
     loss_functions,            # dict[str, Callable]: name -> fn(model) -> scalar tensor
     weights=None,              # dict[str, float]: per-term weights (default 1.0)
     verbose=True,              # tqdm progress bar
@@ -121,7 +121,22 @@ trainer.train(
     early_stop_threshold=1e-8, # minimum decrease that counts as improvement
     grad_clip=None,            # clip global grad norm (helps stiff PDEs)
     callbacks=None,            # list of fn(epoch, epoch_losses) run each epoch
+    save_best=None,            # path to save best model weights during training
+    restore_best=True,         # restore best weights at end of training
 ) -> list[dict[str, float]]    # loss history (also on trainer.loss_history)
+```
+
+Both standard (Adam, SGD) and **closure-based (L-BFGS)** optimizers are supported.
+L-BFGS is detected automatically and uses `optimizer.step(closure)`. For two-stage
+training, call `train()` twice — the loss history accumulates across stages:
+
+```python
+# Stage 1: Adam
+trainer.train(n_epochs=20000, optimizer=adam_opt, loss_functions=losses)
+# Stage 2: L-BFGS refinement
+lbfgs = torch.optim.LBFGS(model.parameters(), lr=1.0, max_iter=50,
+                            history_size=50, line_search_fn="strong_wolfe")
+trainer.train(n_epochs=1000, optimizer=lbfgs, loss_functions=losses)
 ```
 
 **Loss function contract:** `total = Σ weights[name] · loss_fn(model)` — the trainer backprops

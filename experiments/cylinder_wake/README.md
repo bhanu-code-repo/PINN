@@ -66,8 +66,9 @@ self.lambda_2 = nn.Parameter(torch.tensor(lambda2_init))
 f_u = u_t + lam1 * (u * u_x + v * u_y) + p_x - lam2 * (u_xx + u_yy)
 ```
 
-Gradients flow through the residual back to both parameters, so Adam jointly optimises the
-network weights, λ₁, and λ₂.
+Gradients flow through the residual back to both parameters, so the optimizer jointly
+optimises the network weights, λ₁, and λ₂. Two-stage training (Adam → L-BFGS) is
+supported for refined parameter inference.
 
 ### Losses
 
@@ -107,6 +108,7 @@ This file is from the [Raissi PINNs repository](https://github.com/maziarraissi/
 ```bash
 uv run train-cylinder train                        # default: 30k epochs, 5k observations
 uv run train-cylinder train -e 50000 --n-train 10000  # more data + longer training
+uv run train-cylinder train -e 20000 --lbfgs-epochs 1000  # Adam → L-BFGS two-stage
 uv run train-cylinder predict                       # evaluate latest run, report λ errors
 uv run train-cylinder predict --t-idx 150           # snapshot at a different time step
 uv run train-cylinder compare                       # rank all runs
@@ -128,6 +130,22 @@ uv run train-cylinder compare                       # rank all runs
 | `--output-dir` | `-o` | str | auto | Artifact directory |
 | `--show/--no-show` | | flag | `--show` | Display plots interactively |
 | `--data-path` | | str | `.workspace/input/...` | Path to the .mat file |
+| `--lbfgs-epochs` | | int | `0` | L-BFGS refinement epochs after Adam (0 = skip) |
+| `--lbfgs-lr` | | float | `1.0` | L-BFGS learning rate |
+
+### Two-stage training (Adam → L-BFGS)
+
+The original Raissi et al. paper used Adam followed by L-BFGS for refinement. This
+is now supported via `--lbfgs-epochs`. L-BFGS uses quasi-Newton curvature information
+to refine the solution on the smooth loss landscape that Adam has already shaped — it's
+particularly effective for pushing λ₁ and λ₂ toward their true values after Adam plateaus.
+
+```bash
+uv run train-cylinder train -e 20000 --lbfgs-epochs 1000 --no-show
+```
+
+L-BFGS is configured with `history_size=50`, `max_iter=50` per step, and strong Wolfe
+line search. The loss history accumulates across both stages.
 
 ### CLI reference — `predict`
 

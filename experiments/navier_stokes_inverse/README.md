@@ -78,6 +78,7 @@ Default noise level: 1% of the signal amplitude. The observations are saved in
 uv run train-ns-inverse train                              # default: Re_true=20, noise=1%
 uv run train-ns-inverse train --re-true 40 --noise 0.05    # harder: higher Re, 5% noise
 uv run train-ns-inverse train --re-init 1.0                # start from a very wrong guess
+uv run train-ns-inverse train -e 10000 --lbfgs-epochs 500  # Adam → L-BFGS two-stage
 uv run train-ns-inverse predict                             # report inferred Re and accuracy
 uv run train-ns-inverse compare                             # rank all runs
 ```
@@ -98,6 +99,21 @@ uv run train-ns-inverse compare                             # rank all runs
 | `--seed` | | int | `42` | Random seed |
 | `--output-dir` | `-o` | str | auto | Artifact directory |
 | `--show/--no-show` | | flag | `--show` | Display plots interactively |
+| `--lbfgs-epochs` | | int | `0` | L-BFGS refinement epochs after Adam (0 = skip) |
+| `--lbfgs-lr` | | float | `1.0` | L-BFGS learning rate |
+
+### Two-stage training (Adam → L-BFGS)
+
+For sharper Re inference, use L-BFGS refinement after Adam converges. L-BFGS uses
+quasi-Newton curvature information that is particularly effective for the smooth
+landscape around the inverse parameter:
+
+```bash
+uv run train-ns-inverse train -e 10000 --lbfgs-epochs 500 --no-show
+```
+
+The loss history accumulates across both stages. L-BFGS is configured with
+`history_size=50`, strong Wolfe line search.
 
 ### CLI reference — `predict`
 
@@ -131,6 +147,7 @@ This experiment demonstrates the general recipe for PINN inverse problems:
 2. **Add a data loss** that anchors the solution to observations
 3. **Use the learnable parameters inside the physics loss** (here: `nu = 1/Re`)
 4. **Optimise everything jointly** — the optimizer adjusts weights *and* parameters
+5. **Refine with L-BFGS** (optional) — quasi-Newton refinement after Adam plateaus
 
 The physics loss provides the signal: if the current Re guess makes the NS residual large,
 the gradient of that residual w.r.t. `log_Re` pushes Re toward the value that satisfies the
