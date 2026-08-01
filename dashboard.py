@@ -339,7 +339,8 @@ def page_run_detail():
         n_cols = min(len(config), 4) or 1
         config_cols = st.columns(n_cols)
         for i, (key, val) in enumerate(config.items()):
-            config_cols[i % n_cols].metric(key, val)
+            display_val = str(val) if isinstance(val, (dict, list)) else val
+            config_cols[i % n_cols].metric(key, display_val)
 
     st.subheader("Metrics")
     float_metrics = {k: v for k, v in metrics.items() if isinstance(v, float)}
