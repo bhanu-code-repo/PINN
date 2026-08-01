@@ -40,6 +40,9 @@ build-backend = "uv_build"
 module-name = "experiments"
 module-root = ""
 
+[project.optional-dependencies]
+wandb = ["wandb>=0.18.0"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",

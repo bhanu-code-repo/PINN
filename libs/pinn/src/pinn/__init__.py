@@ -12,6 +12,7 @@ Public API:
   :func:`plot_loss_comparison`
 - :func:`pinn.select_rar_points` — residual-based adaptive point selection
 - :func:`pinn.adaptive_train` — multi-phase RAR training loop
+- W&B integration: :func:`wandb_init`, :func:`wandb_callback`, :func:`wandb_finish`
 """
 
 from .core.network import PINN
@@ -22,6 +23,18 @@ from .utils.plotting import plot_comparison_1d, plot_contour, plot_loss_comparis
 from .utils.seed import set_seed
 
 __version__ = "0.1.0"
+
+# W&B functions are lazily imported to avoid requiring wandb as a hard dependency.
+_WANDB_ATTRS = {"wandb_init", "wandb_callback", "wandb_finish"}
+
+
+def __getattr__(name: str):
+    if name in _WANDB_ATTRS:
+        from .wandb_integration import wandb_callback, wandb_finish, wandb_init
+        return {"wandb_init": wandb_init, "wandb_callback": wandb_callback,
+                "wandb_finish": wandb_finish}[name]
+    raise AttributeError(f"module 'pinn' has no attribute {name!r}")
+
 
 __all__ = [
     "__version__",
@@ -34,4 +47,7 @@ __all__ = [
     "plot_contour",
     "plot_comparison_1d",
     "plot_loss_comparison",
+    "wandb_init",
+    "wandb_callback",
+    "wandb_finish",
 ]
