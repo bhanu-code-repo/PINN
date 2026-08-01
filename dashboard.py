@@ -18,110 +18,102 @@ OUTPUTS_ROOT = Path("outputs")
 DEVICE = torch.device("cpu")
 
 # ---------------------------------------------------------------------------
-# Theme & styling
+# Brand colors & light theme
 # ---------------------------------------------------------------------------
 
-# Dark matplotlib theme for consistent look
+BRAND = "#00205B"
+BRAND_LIGHT = "#003380"
+BRAND_LIGHTER = "#E8EDF5"
+BRAND_SUBTLE = "#F4F6FA"
+
+CHART_COLORS = [BRAND, "#0066CC", "#E85D04", "#2D8B4E", "#9B2C8A", "#C4820E"]
+
+# Matplotlib — light theme
 plt.rcParams.update({
-    "figure.facecolor": "#0E1117",
-    "axes.facecolor": "#1A1D23",
-    "axes.edgecolor": "#3D4150",
-    "axes.labelcolor": "#FAFAFA",
-    "text.color": "#FAFAFA",
-    "xtick.color": "#A0A4B0",
-    "ytick.color": "#A0A4B0",
-    "grid.color": "#2D3040",
-    "legend.facecolor": "#1A1D23",
-    "legend.edgecolor": "#3D4150",
-    "legend.labelcolor": "#FAFAFA",
+    "figure.facecolor": "#FFFFFF",
+    "axes.facecolor": "#F8F9FB",
+    "axes.edgecolor": "#D0D7E2",
+    "axes.labelcolor": "#1A1A2E",
+    "text.color": "#1A1A2E",
+    "xtick.color": "#5A6277",
+    "ytick.color": "#5A6277",
+    "grid.color": "#E8EDF5",
+    "legend.facecolor": "#FFFFFF",
+    "legend.edgecolor": "#D0D7E2",
+    "legend.labelcolor": "#1A1A2E",
 })
 
-# Plotly dark template
+# Plotly layout defaults
 PLOTLY_LAYOUT = dict(
-    template="plotly_dark",
-    paper_bgcolor="#0E1117",
-    plot_bgcolor="#1A1D23",
-    font=dict(color="#FAFAFA", family="Inter, system-ui, sans-serif"),
+    template="plotly_white",
+    paper_bgcolor="#FFFFFF",
+    plot_bgcolor="#FFFFFF",
+    font=dict(color="#1A1A2E", family="Inter, system-ui, sans-serif"),
     margin=dict(l=50, r=30, t=50, b=40),
-    legend=dict(bgcolor="rgba(26,29,35,0.8)", bordercolor="#3D4150", borderwidth=1),
+    legend=dict(bgcolor="rgba(255,255,255,0.9)", bordercolor="#D0D7E2", borderwidth=1),
 )
 
-ACCENT = "#FF6B6B"
-ACCENT_BLUE = "#4ECDC4"
-ACCENT_YELLOW = "#FFE66D"
-ACCENT_PURPLE = "#A78BFA"
-
-CUSTOM_CSS = """
+CUSTOM_CSS = f"""
 <style>
-    /* Sidebar */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0E1117 0%, #161B22 100%);
-    }
-    section[data-testid="stSidebar"] hr {
-        border-color: #21262D;
-    }
+    /* Sidebar — brand navy gradient */
+    section[data-testid="stSidebar"] {{
+        background: linear-gradient(180deg, {BRAND} 0%, {BRAND_LIGHT} 100%);
+    }}
+    section[data-testid="stSidebar"] hr {{
+        border-color: rgba(255,255,255,0.15);
+    }}
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] span {{
+        color: #FFFFFF !important;
+    }}
 
     /* Metric cards */
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1A1D23 0%, #21262D 100%);
-        border: 1px solid #30363D;
+    div[data-testid="stMetric"] {{
+        background: linear-gradient(135deg, {BRAND_LIGHTER} 0%, {BRAND_SUBTLE} 100%);
+        border: 1px solid #D0D7E2;
         border-radius: 10px;
         padding: 12px 16px;
-    }
-    div[data-testid="stMetric"] label {
-        color: #8B949E !important;
+    }}
+    div[data-testid="stMetric"] label {{
+        color: #5A6277 !important;
         font-size: 0.78rem !important;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-    }
-    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+    }}
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {{
+        color: #1A1A2E !important;
         font-weight: 600;
-    }
+    }}
 
-    /* Expander styling */
-    div[data-testid="stExpander"] {
-        border: 1px solid #21262D;
+    /* Expander */
+    div[data-testid="stExpander"] {{
+        border: 1px solid #D0D7E2;
         border-radius: 8px;
-        background: #161B22;
-    }
+        background: #F8F9FB;
+    }}
 
     /* Headers */
-    h1 {
-        background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 800 !important;
-    }
-    h2 {
-        color: #E6EDF3 !important;
-        border-bottom: 2px solid #21262D;
+    h1 {{ color: {BRAND} !important; font-weight: 800 !important; }}
+    h2 {{
+        color: {BRAND} !important;
+        border-bottom: 2px solid #D0D7E2;
         padding-bottom: 8px;
-    }
+    }}
 
-    /* Container borders */
-    div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {
+    /* Containers */
+    div[data-testid="stVerticalBlock"] > div[data-testid="stContainer"] {{
         border-radius: 10px;
-    }
+    }}
 
-    /* Subtle dividers */
-    hr {
-        border-color: #21262D !important;
-    }
+    hr {{ border-color: #D0D7E2 !important; }}
 
-    /* Table/dataframe */
-    .stDataFrame {
+    .stDataFrame {{
         border-radius: 8px;
         overflow: hidden;
-    }
+    }}
 </style>
 """
-
-PAGE_ICONS = {
-    "Overview": "home",
-    "Run Detail": "search",
-    "Compare": "bar_chart",
-    "Parametric Predictor": "tune",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -189,14 +181,12 @@ def plotly_loss_chart(
     show_components: bool = True,
 ) -> go.Figure:
     """Build an interactive Plotly loss chart from one or more run histories."""
-    colors = [ACCENT, ACCENT_BLUE, ACCENT_YELLOW, ACCENT_PURPLE, "#F97583", "#79C0FF"]
     fig = go.Figure()
 
     for i, (label, history) in enumerate(histories.items()):
-        color = colors[i % len(colors)]
+        color = CHART_COLORS[i % len(CHART_COLORS)]
         epochs = list(range(1, len(history) + 1))
 
-        # Total loss — always visible
         fig.add_trace(go.Scatter(
             x=epochs,
             y=[h["total"] for h in history],
@@ -205,7 +195,6 @@ def plotly_loss_chart(
             hovertemplate="Epoch %{x}<br>Loss: %{y:.4e}<extra></extra>",
         ))
 
-        # Component losses — initially hidden for multi-run, visible for single
         if show_components and history:
             component_keys = [k for k in history[0] if k != "total"]
             for key in component_keys:
@@ -221,13 +210,24 @@ def plotly_loss_chart(
 
     fig.update_layout(
         **PLOTLY_LAYOUT,
-        title=dict(text=title, font=dict(size=16)),
-        xaxis=dict(title="Epoch", gridcolor="#2D3040"),
-        yaxis=dict(title="Loss", type="log", gridcolor="#2D3040"),
+        title=dict(text=title, font=dict(size=16, color=BRAND)),
+        xaxis=dict(title="Epoch", gridcolor="#E8EDF5"),
+        yaxis=dict(title="Loss", type="log", gridcolor="#E8EDF5"),
         height=450,
         hovermode="x unified",
     )
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Plot expand dialog
+# ---------------------------------------------------------------------------
+
+
+@st.dialog("Plot Viewer", width="large")
+def _show_plot_dialog(image_path: str):
+    """Show an image in a full-width dialog."""
+    st.image(image_path, width="stretch")
 
 
 # ---------------------------------------------------------------------------
@@ -248,12 +248,10 @@ def page_overview():
     total_runs = sum(len(r) for r in experiments.values())
     total_exps = len(experiments)
 
-    # Summary bar
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Experiments", total_exps)
     c2.metric("Total Runs", total_runs)
 
-    # Best overall loss
     best_loss = float("inf")
     best_exp = ""
     for exp_name, runs in experiments.items():
@@ -269,7 +267,6 @@ def page_overview():
 
     st.markdown("---")
 
-    # Experiment cards
     for exp_name, runs in experiments.items():
         with st.expander(
             f":material/{_exp_icon(exp_name)}: **{format_experiment_name(exp_name)}** — {len(runs)} run{'s' if len(runs) != 1 else ''}",
@@ -290,7 +287,6 @@ def page_overview():
                     if loss is not None:
                         cols[3].markdown(format_loss(loss))
 
-                    # Key experiment-specific metrics
                     interesting = {
                         k: v for k, v in metrics.items()
                         if k not in ("final_total_loss", "epochs_run") and isinstance(v, float)
@@ -331,7 +327,6 @@ def page_run_detail():
     config = data.get("config", {})
     metrics = data.get("metrics", {})
 
-    # --- Config ---
     st.subheader("Configuration")
     with st.container(border=True):
         n_cols = min(len(config), 4) or 1
@@ -339,7 +334,6 @@ def page_run_detail():
         for i, (key, val) in enumerate(config.items()):
             config_cols[i % n_cols].metric(key, val)
 
-    # --- Metrics ---
     st.subheader("Metrics")
     float_metrics = {k: v for k, v in metrics.items() if isinstance(v, float)}
     if float_metrics:
@@ -349,7 +343,6 @@ def page_run_detail():
             for i, (key, val) in enumerate(float_metrics.items()):
                 metric_cols[i % n_cols].metric(key, f"{val:.6e}")
 
-    # --- Loss History (Plotly) ---
     st.subheader("Loss History")
     history = load_loss_history(run_dir)
     if history:
@@ -357,11 +350,10 @@ def page_run_detail():
             {run_dir.name: history},
             title=f"Loss History — {format_experiment_name(exp_name)}",
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("No loss history found in checkpoint.")
 
-    # --- Artifacts + Plots side by side ---
     art_col, plot_col = st.columns([1, 2])
 
     with art_col:
@@ -381,10 +373,16 @@ def page_run_detail():
         st.subheader("Plots")
         png_files = sorted(run_dir.glob("*.png"))
         if png_files:
-            # Show plots in a 2-column grid
             img_cols = st.columns(2)
             for i, png in enumerate(png_files):
-                img_cols[i % 2].image(str(png), caption=png.name, width="stretch")
+                with img_cols[i % 2]:
+                    st.image(str(png), caption=png.name, width="stretch")
+                    if st.button(
+                        ":material/open_in_full: Expand",
+                        key=f"expand_{png.name}",
+                        use_container_width=True,
+                    ):
+                        _show_plot_dialog(str(png))
         else:
             st.info("No plot images found.")
 
@@ -427,7 +425,6 @@ def page_compare():
     if not selected:
         return
 
-    # --- Metrics comparison table ---
     st.subheader("Metrics")
     all_data = []
     for run_dir in selected:
@@ -439,7 +436,6 @@ def page_compare():
 
     st.dataframe(all_data, width="stretch")
 
-    # --- Overlaid loss curves (Plotly) ---
     st.subheader("Loss Curves")
     histories = {}
     for run_dir in selected:
@@ -453,7 +449,7 @@ def page_compare():
             title=f"Loss Comparison — {format_experiment_name(exp_name)}",
             show_components=True,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     else:
         st.info("No loss histories found in checkpoints.")
 
@@ -465,7 +461,6 @@ def page_parametric():
         "The model runs inference live — no retraining needed."
     )
 
-    # Detect which parametric experiments have runs
     experiments = discover_runs()
     parametric_exps = {k: v for k, v in experiments.items() if k.startswith("parametric_")}
 
@@ -486,7 +481,6 @@ def page_parametric():
 
     st.markdown("---")
 
-    # --- Experiment-specific parameter sliders ---
     if exp_name == "parametric_taylor_green":
         _parametric_taylor_green(run_dir, config)
     elif exp_name == "parametric_burgers":
@@ -565,7 +559,6 @@ def _parametric_taylor_green(run_dir: Path, config: dict):
         x_np, y_np, t_np = arrays["X"], arrays["Y"], arrays["T"]
         u_exact, v_exact, p_exact = exact_taylor_green(x_np, y_np, t_np, nu)
 
-    # Velocity error
     vel_err = np.sqrt(np.sum((arrays["u_mean"] - u_exact) ** 2 + (arrays["v_mean"] - v_exact) ** 2))
     vel_ref = np.sqrt(np.sum(u_exact**2 + v_exact**2))
     rel_l2_vel = vel_err / vel_ref if vel_ref > 0 else vel_err
@@ -575,7 +568,6 @@ def _parametric_taylor_green(run_dir: Path, config: dict):
     m2.metric("Ensemble Members", len(models))
     m3.metric("Grid Resolution", f"{n_xy} x {n_xy}")
 
-    # Plot at t = T/2
     xy = arrays["xy"]
     X, Y = np.meshgrid(xy, xy, indexing="ij")
     t_mid = arrays["T"].shape[2] // 2
@@ -583,19 +575,18 @@ def _parametric_taylor_green(run_dir: Path, config: dict):
     speed_pred = np.sqrt(arrays["u_mean"][:, :, t_mid] ** 2 + arrays["v_mean"][:, :, t_mid] ** 2)
     speed_exact = np.sqrt(u_exact[:, :, t_mid] ** 2 + v_exact[:, :, t_mid] ** 2)
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
     vmax = max(speed_exact.max(), speed_pred.max())
 
-    cmap = "inferno"
-    im0 = axes[0].contourf(X, Y, speed_exact, levels=20, vmin=0, vmax=vmax, cmap=cmap)
+    im0 = axes[0].contourf(X, Y, speed_exact, levels=20, vmin=0, vmax=vmax, cmap="viridis")
     axes[0].set_title("Exact |vel|", fontsize=12, fontweight="bold")
     plt.colorbar(im0, ax=axes[0], shrink=0.85)
 
-    im1 = axes[1].contourf(X, Y, speed_pred, levels=20, vmin=0, vmax=vmax, cmap=cmap)
+    im1 = axes[1].contourf(X, Y, speed_pred, levels=20, vmin=0, vmax=vmax, cmap="viridis")
     axes[1].set_title("PINN |vel|", fontsize=12, fontweight="bold")
     plt.colorbar(im1, ax=axes[1], shrink=0.85)
 
-    im2 = axes[2].contourf(X, Y, np.abs(speed_pred - speed_exact), levels=20, cmap="magma")
+    im2 = axes[2].contourf(X, Y, np.abs(speed_pred - speed_exact), levels=20, cmap="Reds")
     axes[2].set_title("Pointwise Error", fontsize=12, fontweight="bold")
     plt.colorbar(im2, ax=axes[2], shrink=0.85)
 
@@ -606,7 +597,7 @@ def _parametric_taylor_green(run_dir: Path, config: dict):
 
     plt.suptitle(
         f"Taylor-Green Vortex  |  nu = {nu:.4f}  (Re = {re:.0f})  |  t = T/2",
-        fontsize=14, fontweight="bold", color=ACCENT,
+        fontsize=14, fontweight="bold", color=BRAND,
     )
     plt.tight_layout()
     fig_to_streamlit(fig)
@@ -633,7 +624,7 @@ def _parametric_burgers(run_dir: Path, config: dict):
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-    im = axes[0].contourf(arrays["T"], arrays["X"], arrays["u_mean"], 20, cmap="inferno")
+    im = axes[0].contourf(arrays["T"], arrays["X"], arrays["u_mean"], 20, cmap="viridis")
     axes[0].set_xlabel("t")
     axes[0].set_ylabel("x")
     axes[0].set_title(f"u(x, t) at nu = {nu:.4f}", fontsize=12, fontweight="bold")
@@ -641,23 +632,23 @@ def _parametric_burgers(run_dir: Path, config: dict):
 
     x = arrays["x"][:, 0]
     u_exact_0 = -np.sin(np.pi * x)
-    axes[1].plot(x, u_exact_0, color="#FAFAFA", lw=2.5, label="Exact IC")
-    axes[1].plot(x, arrays["u_mean_0"][:, 0], color=ACCENT, lw=2, ls="--", label="PINN t=0")
-    axes[1].plot(x, arrays["u_mean_1"][:, 0], color=ACCENT_BLUE, lw=2, ls="--", label="PINN t=1")
+    axes[1].plot(x, u_exact_0, color="#1A1A2E", lw=2.5, label="Exact IC")
+    axes[1].plot(x, arrays["u_mean_0"][:, 0], color=CHART_COLORS[0], lw=2, ls="--", label="PINN t=0")
+    axes[1].plot(x, arrays["u_mean_1"][:, 0], color=CHART_COLORS[2], lw=2, ls="--", label="PINN t=1")
     if len(models) > 1:
         axes[1].fill_between(
             x,
             arrays["u_mean_1"][:, 0] - 2 * arrays["u_std_1"][:, 0],
             arrays["u_mean_1"][:, 0] + 2 * arrays["u_std_1"][:, 0],
-            alpha=0.25, color=ACCENT_YELLOW, label="+/- 2 sigma",
+            alpha=0.25, color=CHART_COLORS[3], label="+/- 2 sigma",
         )
-    axes[1].legend(facecolor="#1A1D23", edgecolor="#3D4150")
+    axes[1].legend()
     axes[1].set_title("Snapshots", fontsize=12, fontweight="bold")
-    axes[1].grid(True, alpha=0.2)
+    axes[1].grid(True, alpha=0.3)
 
     plt.suptitle(
         f"Burgers' Equation  |  nu = {nu:.4f}",
-        fontsize=14, fontweight="bold", color=ACCENT,
+        fontsize=14, fontweight="bold", color=BRAND,
     )
     plt.tight_layout()
     fig_to_streamlit(fig)
@@ -691,28 +682,26 @@ def _parametric_harmonic(run_dir: Path, config: dict):
     mean = preds.mean(axis=0)
     std = preds.std(axis=0)
 
-    # Exact solution
     w = np.sqrt(w0**2 - d**2) if w0 > d else 0.0
     t_np = t.numpy().flatten()
     u_exact = np.exp(-d * t_np) * np.cos(w * t_np) if w > 0 else np.exp(-d * t_np)
 
-    # Plotly interactive chart
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=t_np, y=u_exact, name="Exact",
-        line=dict(color="#FAFAFA", width=2.5),
+        line=dict(color="#1A1A2E", width=2.5),
         hovertemplate="t=%{x:.3f}<br>u=%{y:.4f}<extra>Exact</extra>",
     ))
     fig.add_trace(go.Scatter(
         x=t_np, y=mean, name="PINN mean",
-        line=dict(color=ACCENT, width=2, dash="dash"),
+        line=dict(color=CHART_COLORS[0], width=2, dash="dash"),
         hovertemplate="t=%{x:.3f}<br>u=%{y:.4f}<extra>PINN</extra>",
     ))
     if len(models) > 1:
         fig.add_trace(go.Scatter(
             x=np.concatenate([t_np, t_np[::-1]]),
             y=np.concatenate([mean + 2 * std, (mean - 2 * std)[::-1]]),
-            fill="toself", fillcolor="rgba(255, 230, 109, 0.2)",
+            fill="toself", fillcolor="rgba(45,139,78,0.15)",
             line=dict(width=0), name="+/- 2 sigma",
             hoverinfo="skip",
         ))
@@ -720,13 +709,13 @@ def _parametric_harmonic(run_dir: Path, config: dict):
         **PLOTLY_LAYOUT,
         title=dict(
             text=f"Harmonic Oscillator  |  w0 = {w0:.0f}, d = {d:.1f}  |  {regime}",
-            font=dict(size=16, color=ACCENT),
+            font=dict(size=16, color=BRAND),
         ),
-        xaxis=dict(title="t", gridcolor="#2D3040"),
-        yaxis=dict(title="u(t)", gridcolor="#2D3040"),
+        xaxis=dict(title="t", gridcolor="#E8EDF5"),
+        yaxis=dict(title="u(t)", gridcolor="#E8EDF5"),
         height=480,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def _parametric_schrodinger(run_dir: Path, config: dict):
@@ -748,31 +737,31 @@ def _parametric_schrodinger(run_dir: Path, config: dict):
         arrays = ensemble_predict_grid(models, A, n_x=200, n_t=100, device=DEVICE)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    im = axes[0].contourf(arrays["T"], arrays["X"], arrays["h_mag_mean"], 20, cmap="inferno")
+    im = axes[0].contourf(arrays["T"], arrays["X"], arrays["h_mag_mean"], 20, cmap="viridis")
     axes[0].set_xlabel("t")
     axes[0].set_ylabel("x")
     axes[0].set_title(f"|h(x,t)| at A = {A:.2f}", fontsize=12, fontweight="bold")
     plt.colorbar(im, ax=axes[0], shrink=0.85)
 
     x = arrays["x"][:, 0]
-    axes[1].plot(x, arrays["h_mag_mean"][:, 0], color=ACCENT, lw=2, label="PINN t=0")
-    axes[1].plot(x, arrays["h_mag_mean"][:, -1], color=ACCENT_BLUE, lw=2, ls="--", label="PINN t=T")
+    axes[1].plot(x, arrays["h_mag_mean"][:, 0], color=CHART_COLORS[0], lw=2, label="PINN t=0")
+    axes[1].plot(x, arrays["h_mag_mean"][:, -1], color=CHART_COLORS[1], lw=2, ls="--", label="PINN t=T")
     exact_0 = A / np.cosh(A * x)
-    axes[1].plot(x, exact_0, color="#FAFAFA", lw=2, ls=":", label="Exact t=0")
+    axes[1].plot(x, exact_0, color="#1A1A2E", lw=2, ls=":", label="Exact t=0")
     if len(models) > 1:
         axes[1].fill_between(
             x,
             arrays["h_mag_mean"][:, 0] - 2 * arrays["h_mag_std"][:, 0],
             arrays["h_mag_mean"][:, 0] + 2 * arrays["h_mag_std"][:, 0],
-            alpha=0.25, color=ACCENT_YELLOW, label="+/- 2 sigma",
+            alpha=0.25, color=CHART_COLORS[3], label="+/- 2 sigma",
         )
-    axes[1].legend(facecolor="#1A1D23", edgecolor="#3D4150")
+    axes[1].legend()
     axes[1].set_title("Soliton Profile", fontsize=12, fontweight="bold")
-    axes[1].grid(True, alpha=0.2)
+    axes[1].grid(True, alpha=0.3)
 
     plt.suptitle(
         f"Schrodinger Soliton  |  A = {A:.2f}",
-        fontsize=14, fontweight="bold", color=ACCENT,
+        fontsize=14, fontweight="bold", color=BRAND,
     )
     plt.tight_layout()
     fig_to_streamlit(fig)
@@ -810,7 +799,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Sidebar stats
     experiments = discover_runs()
     if experiments:
         total_runs = sum(len(r) for r in experiments.values())
