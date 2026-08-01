@@ -46,10 +46,12 @@ PINN/
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
 │   ├── 03_schrodinger_analysis.ipynb # Complex fields, periodic BCs
 │   └── 04_model_as_solution.ipynb    # Prediction: derivatives, residual check, extrapolation
+├── dashboard.py                  # Streamlit dashboard — see docs/dashboard.md
 ├── docs/
 │   ├── prediction.md             # Concept: how prediction works in a PINN
 │   ├── parametric_pinns.md       # Parametric PINNs + deep ensembles: method & tradeoffs
-│   └── adding_experiments.md     # Step-by-step guide for adding a new experiment
+│   ├── adding_experiments.md     # Step-by-step guide for adding a new experiment
+│   └── dashboard.md              # Dashboard usage guide
 ├── pyproject.toml                # Workspace root + console scripts
 └── uv.lock
 ```
@@ -62,6 +64,22 @@ New to PINNs? The **[learn/](learn/)** directory is a hands-on course (8 noteboo
 uv sync --all-packages
 jupyter lab learn/
 ```
+
+## Dashboard
+
+A Streamlit dashboard for browsing runs, comparing experiments, and running
+interactive parametric predictions — no code needed.
+
+```bash
+uv run streamlit run dashboard.py
+```
+
+Four pages: **Run Browser** (all experiments and runs at a glance), **Run Detail**
+(config, loss curves, artifacts), **Compare** (side-by-side metrics and overlaid
+loss curves), and **Parametric Predictor** (interactive sliders for all four
+parametric experiments — loads a trained checkpoint and runs inference live).
+
+Full guide: [docs/dashboard.md](docs/dashboard.md).
 
 ## Getting Started
 
