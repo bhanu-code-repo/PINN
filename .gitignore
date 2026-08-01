@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local scratch / reference material (not for version control)
+.workspace/
+research/*
+!research/README.md
+
+# Experiment run artifacts
+outputs/

@@ -1,0 +1,73 @@
+[project]
+name = "pinn-monorepo"
+version = "0.1.0"
+description = "Physics-Informed Neural Networks: core library and experiments"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.4.2",
+    "pyfiglet>=1.0.4",
+    "rich>=15.0.0",
+    "scipy>=1.14.0",
+    "plotly>=6.1.0",
+    "streamlit>=1.45.0",
+    "typer>=0.27.0",
+]
+
+[tool.uv.workspace]
+members = [
+    "libs/pinn",
+]
+
+[project.scripts]
+train-harmonic = "experiments.harmonic_oscillator.train:app"
+train-burgers = "experiments.burgers.train:app"
+train-schrodinger = "experiments.schrodinger.train:app"
+train-parametric = "experiments.parametric_harmonic.train:app"
+train-parametric-burgers = "experiments.parametric_burgers.train:app"
+train-parametric-schrodinger = "experiments.parametric_schrodinger.train:app"
+train-taylor-green = "experiments.taylor_green.train:app"
+train-cavity = "experiments.lid_driven_cavity.train:app"
+train-ns-inverse = "experiments.navier_stokes_inverse.train:app"
+train-cylinder = "experiments.cylinder_wake.train:app"
+train-parametric-tg = "experiments.parametric_taylor_green.train:app"
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "experiments"
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "libs/pinn/tests"]
+addopts = "-m 'not slow' -q"
+markers = [
+    "slow: long-running convergence tests (run with: uv run pytest -m slow)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["notebooks", ".workspace", "learn"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # long lines in docstrings/tables are fine; formatter handles code
+]

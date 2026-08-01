@@ -1,0 +1,20 @@
+[project]
+name = "pinn"
+version = "0.1.0"
+description = "Core library for building and training Physics-Informed Neural Networks (PINNs) in PyTorch"
+readme = "README.md"
+authors = [
+    { email = "bpst.work@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "loguru>=0.7.2",
+    "matplotlib>=3.11.1",
+    "numpy>=2.4.6",
+    "torch>=2.13.0",
+    "tqdm>=4.70.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"
