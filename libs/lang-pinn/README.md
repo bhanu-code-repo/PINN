@@ -12,7 +12,29 @@ Inspired by [Lang-PINN (He et al. 2025)](https://arxiv.org/abs/2510.05158) — a
 | **Code Agent** | All agents use LLM | Exploration, prototyping |
 | **Hybrid** | LLM + feedback loop | Best of both — LLM targets `pinn` library API |
 
-## Quick Start
+## CLI
+
+```bash
+# Full pipeline: parse → recommend → generate (hybrid mode)
+uv run lang-pinn solve "u'' + 2u' + 6400u = 0, u(0)=1, u'(0)=0 on [0,1]"
+
+# Library mode (deterministic, no LLM for arch/code)
+uv run lang-pinn solve "Burgers equation" --mode library
+
+# Save generated code + specs
+uv run lang-pinn solve "heat equation" --save-code --output-dir ./my_experiment
+
+# Execute the generated code
+uv run lang-pinn solve "exponential decay" --execute
+
+# Parse only (PDE Agent)
+uv run lang-pinn parse "damped harmonic oscillator"
+
+# Parse + recommend architecture (PDE + PINN Agents)
+uv run lang-pinn recommend "Schrodinger equation with periodic BCs"
+```
+
+## Python API
 
 ```python
 from lang_pinn import Orchestrator
@@ -35,6 +57,8 @@ lang-pinn/
 │   ├── pinn_agent.py     # PDESpec → ArchitectureRec (rules or LLM)
 │   └── code_agent.py     # PDESpec + Arch → Python code (template or LLM)
 ├── orchestrator.py       # 3-mode pipeline runner
+├── cli.py                # Typer CLI (solve, parse, recommend)
+├── sympy_verify.py       # SymPy-based PDE verification
 └── schemas.py            # PDESpec, ArchitectureRec dataclasses
 ```
 

@@ -13,18 +13,27 @@ Quick start::
 
     orch = Orchestrator()
     result = orch.solve("Solve u'' + 2u' + 6400u = 0, u(0)=1, u'(0)=0 on [0,1]")
+
+CLI::
+
+    uv run lang-pinn solve "u'' + 2u' + 6400u = 0, u(0)=1, u'(0)=0"
+    uv run lang-pinn parse "heat equation on a rod"
+    uv run lang-pinn recommend "Burgers equation with nu=0.01"
 """
 
 from .agents.code_agent import CodeAgent
 from .agents.pde_agent import PDEAgent
 from .agents.pinn_agent import PINNAgent
 from .orchestrator import Orchestrator
-from .schemas import PDESpec
+from .schemas import ArchitectureRec, PDESpec
+from .sympy_verify import verify_spec
 
 __all__ = [
+    "ArchitectureRec",
     "CodeAgent",
     "Orchestrator",
     "PDEAgent",
     "PDESpec",
     "PINNAgent",
+    "verify_spec",
 ]
