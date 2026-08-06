@@ -19,7 +19,15 @@ import torch.autograd as autograd
 import torch.nn as nn
 import typer
 from loguru import logger
-from pinn import PINN, PINNTrainer, adaptive_train, plot_contour
+from pinn import (
+    PINN,
+    AdaptiveLossWeighter,
+    PINNTrainer,
+    TrainingHealthMonitor,
+    adaptive_train,
+    evaluate_quality,
+    plot_contour,
+)
 
 from experiments.common import (
     compare_runs,
@@ -180,6 +188,7 @@ def solve_burgers_equation(
     rar_points: int = 500,
     use_wandb: bool = False,
     wandb_project: str = "pinn",
+    adaptive_weights: bool = False,
 ) -> dict:
     """Train, evaluate, and persist a Burgers' equation PINN run.
 
@@ -196,19 +205,25 @@ def solve_burgers_equation(
         "epochs": epochs, "lr": lr, "hidden_neurons": hidden_neurons,
         "hidden_layers": hidden_layers, "nu": nu, "seed": seed,
         "rar": rar, "rar_phases": rar_phases, "rar_points": rar_points,
+        "adaptive_weights": adaptive_weights,
     }
     logger.info("Config: {}", config)
-
-    # W&B integration (optional)
-    callbacks = []
-    if use_wandb:
-        from pinn import wandb_callback, wandb_init
-        wandb_init(project=wandb_project, config=config, group=EXPERIMENT)
-        callbacks.append(wandb_callback(prefix="train/"))
 
     # 1. Model + trainer
     model = build_model(config)
     trainer = PINNTrainer(model, device=device)
+
+    # Optional callbacks
+    callbacks = []
+    weights = {"ic": 1.0, "bc": 1.0, "physics": 1.0}
+    monitor = TrainingHealthMonitor(model, log_every=5000)
+    callbacks.append(monitor)
+    if adaptive_weights:
+        callbacks.append(AdaptiveLossWeighter(weights, rebalance_every=1000))
+    if use_wandb:
+        from pinn import wandb_callback, wandb_init
+        wandb_init(project=wandb_project, config=config, group=EXPERIMENT)
+        callbacks.append(wandb_callback(prefix="train/"))
 
     # 2. Train (standard or RAR)
     if rar:
@@ -225,6 +240,7 @@ def solve_burgers_equation(
             n_candidates=10_000,
             n_select=rar_points,
             save_best=run_dir / "best_model.pt",
+            weights=weights,
             callbacks=callbacks or None,
         )
         config["rar_points_per_phase"] = rar_result["points_per_phase"]
@@ -234,6 +250,7 @@ def solve_burgers_equation(
         trainer.train(
             n_epochs=epochs, optimizer=optimizer,
             loss_functions=loss_functions, save_best=run_dir / "best_model.pt",
+            weights=weights,
             callbacks=callbacks or None,
         )
     trainer.save_checkpoint(run_dir / "checkpoint.pt", metadata=config)
@@ -249,6 +266,9 @@ def solve_burgers_equation(
         "final_physics_loss": final["physics"],
         "epochs_run": len(trainer.loss_history),
     })
+    quality = evaluate_quality(trainer.loss_history)
+    metrics["quality"] = quality
+    metrics["health"] = monitor.report()
     save_metrics({"config": config, "metrics": metrics}, run_dir)
 
     # 4. Plots and summary
@@ -294,6 +314,9 @@ def train(
     rar_points: int = typer.Option(500, "--rar-points", help="New collocation points per phase."),
     use_wandb: bool = typer.Option(False, "--wandb", help="Log to Weights & Biases."),
     wandb_project: str = typer.Option("pinn", "--wandb-project", help="W&B project name."),
+    adaptive_weights: bool = typer.Option(
+        False, "--adaptive-weights", help="Dynamically rebalance loss weights.",
+    ),
 ):
     """Train a PINN to solve the 1D Burgers' equation."""
     show_banner("BURGERS", "1D Burgers' Equation PINN Solver")
@@ -311,6 +334,7 @@ def train(
         rar_points=rar_points,
         use_wandb=use_wandb,
         wandb_project=wandb_project,
+        adaptive_weights=adaptive_weights,
     )
 
 
