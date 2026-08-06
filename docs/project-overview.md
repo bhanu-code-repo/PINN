@@ -50,6 +50,8 @@ An LLM-guided system for constructing and training PINNs from natural language, 
 | **PINN Agent** | Recommends network architecture based on PDE features — rule-based heuristics from 11 experiments, or LLM-assisted |
 | **Code Agent** | Generates runnable experiment code targeting the `pinn` library API — deterministic templates or LLM-generated |
 | **Orchestrator** | 3-mode pipeline: library (deterministic), code-agent (full LLM), hybrid (LLM + iterative feedback refinement) |
+| **SymPy Verification** | Validates PDE parses: derivative order, variable consistency, domain bounds, symbolic parseability |
+| **CLI** | `uv run lang-pinn solve/parse/recommend` — Rich tables, syntax-highlighted code, artifact saving |
 
 The hybrid mode is where it gets interesting: the LLM generates code, the `pinn` library executes it, the Feedback Agent scores it, and the LLM refines — a quality-gated loop that combines LLM flexibility with library reliability.
 
@@ -136,8 +138,8 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Experiments | 11 |
 | Learning notebooks | 9 |
 | Analysis notebooks | 4 |
-| Automated tests | 180 (175 fast + 5 convergence) |
-| Development phases | 21 |
+| Automated tests | 202 (197 fast + 5 convergence) |
+| Development phases | 22 |
 | Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 

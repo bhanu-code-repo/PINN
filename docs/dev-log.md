@@ -417,12 +417,40 @@ hybrid (LLM generates code targeting `pinn` library API with feedback loop).
   Code Agent (12), Orchestrator (8). All LLM calls mocked.
 - 175 total fast tests (up from 128 pre-lang-pinn), all passing.
 
+### Phase 22 — Lang-PINN CLI + SymPy Verification
+**PR:** #7 (feature/lang-pinn-cli → main)
+
+CLI entry point and symbolic verification for the Lang-PINN framework.
+
+- `libs/lang-pinn/src/lang_pinn/cli.py` — Typer CLI with 3 commands:
+  - `uv run lang-pinn solve "..."` — full pipeline (parse → recommend → generate),
+    with `--mode` (library/code-agent/hybrid), `--execute`, `--save-code`,
+    `--output-dir`. Rich tables for PDE spec and architecture, syntax-highlighted
+    code display.
+  - `uv run lang-pinn parse "..."` — PDE Agent only, outputs parsed spec.
+  - `uv run lang-pinn recommend "..."` — PDE + PINN Agents, outputs spec + arch.
+- `libs/lang-pinn/src/lang_pinn/sympy_verify.py` — SymPy-based verification:
+  - Domain bounds validation (low < high)
+  - Derivative order consistency (detected vs claimed)
+  - Variable declaration consistency (equation vars vs independent_vars)
+  - Spatial dimension consistency
+  - SymPy equation parseability (both LHS and RHS)
+- `libs/lang-pinn/tests/test_cli.py` — 5 CLI tests (solve, parse, recommend,
+  save artifacts, table output). All LLM calls mocked.
+- `libs/lang-pinn/tests/test_sympy_verify.py` — 17 tests: derivative order
+  detection, variable extraction, full verification (valid ODE, invalid domain,
+  missing domain, order mismatch, spatial dim mismatch, undeclared var, SymPy
+  parseability, valid PDE).
+- `pyproject.toml` — registered `lang-pinn` console script.
+- 197 total fast tests (up from 175 pre-CLI), all passing.
+
 ---
 
 ## Roadmap / Deferred
 
-- **Lang-PINN enhancements** — SymPy-based PDE verification, more PDE templates,
-  CLI entry point (`uv run lang-pinn solve "..."`), real-world integration tests.
+- **Lang-PINN notebooks** — 3-notebook series: intro (3 modes), hybrid deep-dive,
+  bring-your-own-PDE.
+- **Dashboard update** — integrate Lang-PINN results into Streamlit dashboard.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.

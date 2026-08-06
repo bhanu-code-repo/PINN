@@ -194,6 +194,8 @@ The `lang-pinn` package (in `libs/lang-pinn`) is documented in [libs/lang-pinn/R
 - **PINN Agent** — recommend architecture from PDE features (rule-based or LLM-assisted)
 - **Code Agent** — generate experiment code targeting the `pinn` library API (template or LLM)
 - **Orchestrator** — 3-mode runner: library (deterministic), code-agent (full LLM), hybrid (LLM + feedback loop)
+- **SymPy verification** — validates PDE parse: derivative order, variable consistency, domain bounds, equation parseability
+- **CLI** — `uv run lang-pinn solve "..."`, `parse`, `recommend` commands with Rich output
 
 ## Testing
 
