@@ -775,6 +775,158 @@ def _parametric_schrodinger(run_dir: Path, config: dict):
     fig_to_streamlit(fig)
 
 
+def page_lang_pinn():
+    """Lang-PINN — describe a PDE in natural language and get a PINN solution."""
+    st.markdown(
+        "Describe a differential equation in **natural language**. "
+        "Lang-PINN will parse it, recommend an architecture, and generate "
+        "runnable experiment code — all powered by LLM agents."
+    )
+
+    # Mode selector
+    col_mode, col_info = st.columns([1, 2])
+    mode = col_mode.selectbox(
+        "Mode",
+        ["library", "code-agent", "hybrid"],
+        index=2,
+        help=(
+            "**library** — PDE parsed by LLM, architecture and code are deterministic.\n\n"
+            "**code-agent** — all agents use LLM.\n\n"
+            "**hybrid** — LLM generates code targeting the pinn library API, "
+            "with iterative feedback refinement."
+        ),
+    )
+    mode_descriptions = {
+        "library": "Deterministic rules + templates. Fast, reproducible.",
+        "code-agent": "Full LLM pipeline. Flexible, creative.",
+        "hybrid": "LLM + feedback loop. Best of both worlds.",
+    }
+    col_info.info(mode_descriptions[mode])
+
+    # Input
+    description = st.text_area(
+        "Describe your PDE",
+        placeholder=(
+            "e.g. 'Solve the damped harmonic oscillator u'' + 2u' + 6400u = 0 "
+            "with u(0)=1, u'(0)=0 on [0,1]'"
+        ),
+        height=100,
+    )
+
+    col_btn, col_verify = st.columns([1, 1])
+    run_button = col_btn.button(
+        ":material/play_arrow: Generate", type="primary",
+        disabled=not description.strip(),
+        use_container_width=True,
+    )
+    verify = col_verify.checkbox("SymPy verification", value=True)
+
+    if not run_button:
+        # Show example cards
+        st.markdown("---")
+        st.subheader("Examples")
+        examples = [
+            ("Exponential Decay (ODE)", "Solve u' + u = 0, u(0) = 1, on [0, 3]"),
+            ("Damped Oscillator (ODE)", "u'' + 2u' + 6400u = 0, u(0)=1, u'(0)=0 on [0,1]"),
+            ("Burgers (PDE)", "Burgers equation u_t + u*u_x = 0.01*u_xx on x in [-1,1], t in [0,1]"),
+            ("Heat Equation (PDE)", "Heat equation u_t = 0.1*u_xx on [0,1] x [0,0.5]"),
+        ]
+        cols = st.columns(2)
+        for i, (title, desc) in enumerate(examples):
+            with cols[i % 2], st.container(border=True):
+                st.markdown(f"**{title}**")
+                st.code(desc, language=None)
+        return
+
+    # Run the pipeline
+    with st.spinner("Running Lang-PINN pipeline..."):
+        try:
+            from lang_pinn import Orchestrator
+            orch = Orchestrator(mode=mode)
+            result = orch.solve(description)
+        except Exception as e:
+            st.error(f"Pipeline error: {e}")
+            return
+
+    st.markdown("---")
+
+    # PDE Specification
+    st.subheader("Parsed PDE Specification")
+    spec = result.spec
+    with st.container(border=True):
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        sc1.metric("Name", spec.name)
+        sc2.metric("Order", spec.order)
+        sc3.metric("Spatial Dim", spec.spatial_dim)
+        sc4.metric("Output Dim", spec.output_dim)
+
+        st.markdown(f"**Equation:** `{spec.equation}`")
+        st.markdown(f"**Variables:** {' → '.join(spec.independent_vars)} → {spec.dependent_var}")
+        st.markdown(f"**Domain:** {spec.domain}")
+
+        if spec.initial_conditions:
+            st.markdown(f"**ICs:** {', '.join(spec.initial_conditions)}")
+        if spec.boundary_conditions:
+            st.markdown(f"**BCs:** {', '.join(spec.boundary_conditions)}")
+        if spec.parameters:
+            st.markdown(f"**Parameters:** {', '.join(f'{k}={v}' for k, v in spec.parameters.items())}")
+
+        features = []
+        if spec.has_high_frequency:
+            features.append("high-frequency")
+        if spec.has_sharp_gradients:
+            features.append("sharp-gradients")
+        if spec.has_periodic_bc:
+            features.append("periodic-BC")
+        if not spec.is_linear:
+            features.append("nonlinear")
+        if features:
+            st.markdown(f"**Features:** {', '.join(features)}")
+
+    # SymPy verification
+    if verify:
+        try:
+            from lang_pinn import verify_spec
+            issues = verify_spec(spec)
+            if issues:
+                for issue in issues:
+                    st.warning(f"SymPy: {issue}")
+            else:
+                st.success("SymPy verification passed")
+        except Exception as e:
+            st.caption(f"SymPy verification skipped: {e}")
+
+    # Architecture Recommendation
+    st.subheader("Architecture Recommendation")
+    arch = result.architecture
+    with st.container(border=True):
+        ac1, ac2, ac3, ac4 = st.columns(4)
+        ac1.metric("Network", f"{arch.hidden_layers}×{arch.hidden_neurons}")
+        ac2.metric("Activation", arch.activation)
+        ac3.metric("Epochs", f"{arch.epochs:,}")
+        ac4.metric("Collocation", f"{arch.n_collocation:,}")
+
+        ac5, ac6, ac7 = st.columns(3)
+        ac5.metric("Learning Rate", f"{arch.learning_rate}")
+        ac6.metric("Ansatz", arch.ansatz_type or "None")
+        ac7.metric("Loss Weights", str(arch.loss_weights))
+
+        if arch.reasoning:
+            st.caption(f"**Reasoning:** {arch.reasoning}")
+
+    # Generated Code
+    st.subheader("Generated Code")
+    st.code(result.code, language="python", line_numbers=True)
+
+    # Download button
+    st.download_button(
+        ":material/download: Download Code",
+        data=result.code,
+        file_name="generated_experiment.py",
+        mime="text/x-python",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -801,6 +953,7 @@ with st.sidebar:
             ":material/search: Run Detail",
             ":material/bar_chart: Compare",
             ":material/tune: Parametric Predictor",
+            ":material/smart_toy: Lang-PINN",
         ],
         label_visibility="collapsed",
     )
@@ -827,3 +980,5 @@ elif "Compare" in page:
     page_compare()
 elif "Parametric" in page:
     page_parametric()
+elif "Lang-PINN" in page:
+    page_lang_pinn()

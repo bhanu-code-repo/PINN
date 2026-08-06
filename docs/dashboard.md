@@ -94,6 +94,25 @@ ensemble mean and +/- 2 sigma epistemic uncertainty bands.
 This is the payoff of parametric PINNs — one model, instant evaluation at any
 parameter value.
 
+### 5. Lang-PINN
+
+Interactive LLM-guided PINN construction. This page exposes the full
+Lang-PINN pipeline through a Streamlit UI:
+
+- **Mode selector** — choose library, code-agent, or hybrid mode
+- **PDE description** — free-text input for describing your equation
+- **Example cards** — pre-built examples (damped oscillator, Burgers, advection,
+  heat equation) to try with one click
+- **SymPy verification** — validates the parsed PDE spec for consistency
+- **PDE spec display** — structured view of parsed equation, domain, conditions,
+  and parameters
+- **Architecture recommendation** — network size, activation, Ansatz, loss weights,
+  collocation density with reasoning
+- **Generated code** — syntax-highlighted experiment code with download button
+
+No LLM API key is required for library mode — architecture recommendation and
+code generation use deterministic rules and templates.
+
 ---
 
 ## How It Works
