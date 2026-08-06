@@ -206,6 +206,26 @@ def test_burgers_rar_lifecycle(tmp_path):
         assert (run_dir / artifact).exists(), f"missing {artifact}"
 
 
+def test_burgers_adaptive_weights(tmp_path):
+    """Burgers with adaptive weights: train with --adaptive-weights flag."""
+    import json
+
+    run_dir = tmp_path / "burgers" / "adaptive_run"
+
+    invoke(burgers_app, [
+        "train", "-e", "10", "--seed", "0", "--no-show", "-o", str(run_dir),
+        "--adaptive-weights",
+    ])
+    for artifact in TRAIN_ARTIFACTS:
+        assert (run_dir / artifact).exists(), f"missing {artifact}"
+
+    # Metrics should include quality and health reports
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    assert "quality" in metrics["metrics"]
+    assert "health" in metrics["metrics"]
+    assert "quality_score" in metrics["metrics"]["quality"]
+
+
 def test_taylor_green_lifecycle(tmp_path, monkeypatch):
     """Taylor-Green vortex: train -> predict -> compare."""
     run_dir = tmp_path / "taylor_green" / "run1"

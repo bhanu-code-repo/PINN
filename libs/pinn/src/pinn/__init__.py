@@ -13,9 +13,12 @@ Public API:
 - :func:`pinn.select_rar_points` — residual-based adaptive point selection
 - :func:`pinn.adaptive_train` — multi-phase RAR training loop
 - W&B integration: :func:`wandb_init`, :func:`wandb_callback`, :func:`wandb_finish`
+- Feedback: :class:`TrainingHealthMonitor`, :class:`AdaptiveLossWeighter`,
+  :func:`evaluate_quality`
 """
 
 from .core.network import PINN
+from .feedback import AdaptiveLossWeighter, TrainingHealthMonitor, evaluate_quality
 from .rar import adaptive_train, select_rar_points
 from .trainer.trainer import PINNTrainer
 from .utils.logging import setup_logging
@@ -47,6 +50,9 @@ __all__ = [
     "plot_contour",
     "plot_comparison_1d",
     "plot_loss_comparison",
+    "TrainingHealthMonitor",
+    "AdaptiveLossWeighter",
+    "evaluate_quality",
     "wandb_init",
     "wandb_callback",
     "wandb_finish",

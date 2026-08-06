@@ -332,10 +332,44 @@ Four NS experiments covering the full spectrum:
   covering all 11 experiments, 84 tests, learning curriculum, dashboard, and roadmap.
 - 79 total fast tests (up from 70 pre-W&B), all passing.
 
+### Phase 19 — Training Feedback Agent
+**Commit:** `d363120` Add training feedback: health monitor, adaptive loss weighting, quality eval
+**PR:** #4 (feature/feedback-agent → main)
+
+Inspired by the Feedback Agent concept from Lang-PINN (He et al. 2025, ICLR 2026
+Workshop Spotlight). Adapted as pure callbacks within the existing PINNTrainer.
+
+- `libs/pinn/src/pinn/feedback.py` — three components:
+  - `TrainingHealthMonitor` — epoch callback tracking loss smoothness
+    (`1 - Std(ΔL)/Mean(L)`), gradient health (norm in `[ε, κ]` range),
+    and convergence detection. `monitor.report()` returns full health summary.
+  - `AdaptiveLossWeighter` — epoch callback that dynamically rebalances loss
+    weights when one term dominates (max/min ratio > threshold). Rebalances
+    inversely proportional to mean loss, with clamping to `[min_weight, max_weight]`.
+    Mutates the `weights` dict in-place — trainer sees changes on the next epoch.
+  - `evaluate_quality(loss_history)` — post-training scoring across three
+    dimensions: effectiveness (final MSE via log-scale normalization), efficiency
+    (convergence speed as fraction of total epochs), robustness (loss smoothness).
+    Returns overall `quality_score` (weighted 0.4/0.3/0.3).
+- `experiments/burgers/train.py` — new `--adaptive-weights` CLI flag. Health
+  monitor always active, quality and health reports saved in `metrics.json`.
+- `libs/pinn/tests/test_feedback.py` — 20 unit tests covering health monitor
+  (loss tracking, smoothness stable/unstable, gradient health, convergence
+  detection, report fields, trainer integration), adaptive weighter (balanced
+  no-op, imbalanced rebalance, clamping, rebalance count, trainer integration),
+  and quality evaluator (empty history, converged/non-converged, smooth/oscillating,
+  field presence, score bounds).
+- `tests/test_experiments_cli.py` — 1 new CLI smoke test for `--adaptive-weights`
+  verifying quality and health reports in `metrics.json`.
+- 100 total fast tests (up from 79 pre-feedback), all passing.
+
 ---
 
 ## Roadmap / Deferred
 
+- **Lang-PINN multi-agent framework** — LLM-guided PINN construction with 3 modes
+  (library, code-agent, hybrid). Requires `llm-provider` library (Phase 2) and
+  `lang-pinn` agents (Phase 3). Feedback Agent (Phase 1) is complete.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.
