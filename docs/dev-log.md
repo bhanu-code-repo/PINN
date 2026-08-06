@@ -363,13 +363,36 @@ Workshop Spotlight). Adapted as pure callbacks within the existing PINNTrainer.
   verifying quality and health reports in `metrics.json`.
 - 100 total fast tests (up from 79 pre-feedback), all passing.
 
+### Phase 20 — LLM Provider Library
+**Commit:** `beca8e2` Add llm-provider library: LiteLLM-based LLM abstraction layer
+**PR:** #5 (feature/llm-provider → main)
+
+Foundation for Lang-PINN multi-agent framework. New workspace member
+`libs/llm-provider/` providing a thin, LLM-agnostic client layer.
+
+- `libs/llm-provider/src/llm_provider/config.py` — `LLMConfig` dataclass with
+  resolution order: explicit kwargs > env vars > `.env` file > defaults.
+  `LLMConfig.cloud()` for Ollama Cloud (auto-injects bearer auth header),
+  `LLMConfig.local()` for localhost:11434. Any LiteLLM-supported provider
+  (Anthropic, OpenAI, Vertex) works by changing `model` + `api_key` — no
+  code changes required.
+- `libs/llm-provider/src/llm_provider/client.py` — `LLMClient` with sync
+  (`ask`, `ask_batch`) and async (`ask_async`, `ask_batch_async`) APIs.
+  Supports system messages, streaming, and multi-turn conversations.
+  `LLMClient()` / `.local()` / `.cloud()` convenience constructors.
+- `libs/llm-provider/tests/` — 28 tests (14 config + 14 client), all mocked
+  against LiteLLM so no API key needed to run.
+- `pyproject.toml` — registered as workspace member, test path added.
+- Default: Ollama Cloud `gpt-oss:120b`, reads `OLLAMA_API_KEY` from `.env`.
+- 128 total fast tests (up from 100 pre-llm-provider), all passing.
+
 ---
 
 ## Roadmap / Deferred
 
 - **Lang-PINN multi-agent framework** — LLM-guided PINN construction with 3 modes
-  (library, code-agent, hybrid). Requires `llm-provider` library (Phase 2) and
-  `lang-pinn` agents (Phase 3). Feedback Agent (Phase 1) is complete.
+  (library, code-agent, hybrid). Feedback Agent (Phase 1) and LLM Provider
+  (Phase 2) are complete. Next: Lang-PINN agents (Phase 3).
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.

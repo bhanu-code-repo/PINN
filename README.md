@@ -16,13 +16,17 @@ Minimising the weighted sum drives the network toward a function that satisfies 
 ```
 PINN/
 ├── libs/
-│   └── pinn/                     # Core library (workspace member) — see libs/pinn/README.md
-│       └── src/pinn/
-│           ├── core/             # PINN MLP backbone
-│           ├── trainer/          # Generic multi-loss trainer
-│           ├── rar.py            # Residual-based Adaptive Refinement
-│           ├── feedback.py       # Training health monitor, adaptive weights, quality eval
-│           └── utils/            # Plotting, logging, seeding
+│   ├── pinn/                     # Core library (workspace member) — see libs/pinn/README.md
+│   │   └── src/pinn/
+│   │       ├── core/             # PINN MLP backbone
+│   │       ├── trainer/          # Generic multi-loss trainer
+│   │       ├── rar.py            # Residual-based Adaptive Refinement
+│   │       ├── feedback.py       # Training health monitor, adaptive weights, quality eval
+│   │       └── utils/            # Plotting, logging, seeding
+│   └── llm-provider/             # LLM abstraction layer — see libs/llm-provider/README.md
+│       └── src/llm_provider/
+│           ├── config.py         # LLMConfig: env/.env/kwargs resolution, Ollama Cloud auth
+│           └── client.py         # LLMClient: sync + async, streaming, system messages
 ├── experiments/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
@@ -164,7 +168,7 @@ Quick summary:
 Every experiment run writes a self-contained artifact directory under `outputs/`
 (checkpoint, `metrics.json`, plots, loguru logs) — see any experiment README for details.
 
-## Core Library
+## Core Libraries
 
 The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/pinn/README.md) — including a "solve your own equation in 5 steps" quickstart and a scaling guide. Highlights:
 
@@ -172,6 +176,12 @@ The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/
 - `PINNTrainer` — named multi-term losses with per-term weights, early stopping, gradient clipping, per-epoch callbacks, checkpoint save/load, full loss history
 - `set_seed` / `setup_logging` — reproducibility and loguru console+file logging
 - `utils.plotting` — contour, 1D-comparison, and loss-comparison plots (headless-safe)
+
+The `llm-provider` package (in `libs/llm-provider`) is documented in [libs/llm-provider/README.md](libs/llm-provider/README.md). Foundation for Lang-PINN multi-agent framework:
+
+- `LLMClient` — sync + async LLM queries with streaming, system messages, batch support
+- `LLMConfig` — settings resolution (kwargs > env > `.env` > defaults), Ollama Cloud auth
+- Ollama Cloud default (`gpt-oss:120b`); any LiteLLM provider works by changing `model` + `api_key`
 
 ## Testing
 
@@ -185,7 +195,8 @@ Layout:
 
 - `libs/pinn/tests/` — library unit tests: network shapes/gradients, trainer mechanics
   (weighted losses, early stopping, grad clipping, callbacks), checkpoint round-trip,
-  seeding, headless plotting
+  seeding, headless plotting, feedback agent
+- `libs/llm-provider/tests/` — config resolution, client sync/async, all mocked (no API key)
 - `tests/test_experiments_cli.py` — full `train → predict → compare` lifecycle per experiment
   via Typer's in-process `CliRunner`, asserting every artifact is written
 - `tests/test_convergence.py` — marked `slow`: solves `u' = -u` against the exact solution

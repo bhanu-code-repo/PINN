@@ -17,6 +17,7 @@ dependencies = [
 [tool.uv.workspace]
 members = [
     "libs/pinn",
+    "libs/llm-provider",
 ]
 
 [project.scripts]
@@ -50,7 +51,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "libs/pinn/tests"]
+testpaths = ["tests", "libs/pinn/tests", "libs/llm-provider/tests"]
 addopts = "-m 'not slow' -q"
 markers = [
     "slow: long-running convergence tests (run with: uv run pytest -m slow)",
