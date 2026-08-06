@@ -43,7 +43,7 @@ PINN/
 │   ├── lid_driven_cavity/        # Lid-driven cavity — 2D steady NS, Ghia benchmark
 │   ├── navier_stokes_inverse/    # Inverse NS — infer Re from data (Kovasznay flow)
 │   └── cylinder_wake/            # Raissi cylinder wake — inverse NS with real DNS data
-├── learn/                        # Hands-on PINN course (9 notebooks, ~5 hours)
+├── learn/                        # Hands-on PINN course (12 notebooks, ~7 hours)
 │   ├── 01_what_are_pinns.ipynb       # Motivation, landscape, when to use
 │   ├── 02_autodiff_the_key_idea.ipynb # torch.autograd.grad deep dive
 │   ├── 03_first_pinn_from_scratch.ipynb # Solve u'=-u with raw PyTorch
@@ -52,7 +52,10 @@ PINN/
 │   ├── 06_training_tricks.ipynb      # Loss weighting, spectral bias, Ansatz
 │   ├── 07_parametric_and_inverse.ipynb # Parameters as inputs + learnable params
 │   ├── 08_honest_assessment.ipynb    # Failure modes, alternatives, decision framework
-│   └── 09_inverse_navier_stokes.ipynb # Infer Re from flow data — Kovasznay, streamfunction
+│   ├── 09_inverse_navier_stokes.ipynb # Infer Re from flow data — Kovasznay, streamfunction
+│   ├── 10_lang_pinn_intro.ipynb      # Lang-PINN: 3 agents, 3 modes, PDESpec
+│   ├── 11_hybrid_mode_deep_dive.ipynb # Feedback loop, quality scoring, adaptive weights
+│   └── 12_bring_your_own_pde.ipynb   # End-to-end: describe → verify → generate → train
 ├── notebooks/                    # Experiment-specific analysis notebooks
 │   ├── 01_harmonic_analysis.ipynb    # Full deep-dive: PINN cost function & solving loop
 │   ├── 02_burgers_analysis.ipynb     # Nonlinear PDE, shock formation
@@ -70,7 +73,7 @@ PINN/
 
 ## Learn PINNs
 
-New to PINNs? The **[learn/](learn/)** directory is a hands-on course (9 notebooks, ~5 hours) that takes you from zero to solving your own equations. No prior PINN experience required — just Python, PyTorch basics, and some calculus. See [learn/README.md](learn/README.md) for the full learning path.
+New to PINNs? The **[learn/](learn/)** directory is a hands-on course (12 notebooks, ~7 hours) that takes you from zero to solving your own equations. No prior PINN experience required — just Python, PyTorch basics, and some calculus. See [learn/README.md](learn/README.md) for the full learning path.
 
 ```bash
 uv sync --all-packages

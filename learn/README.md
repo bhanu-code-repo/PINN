@@ -34,8 +34,11 @@ libraries, or prior PINN knowledge.
 | 07 | [Parametric PINNs and Inverse Problems](07_parametric_and_inverse.ipynb) | One model for a whole family + infer unknown parameters from data | 40 min |
 | 08 | [Honest Assessment: When to Use PINNs](08_honest_assessment.ipynb) | Failure modes, alternatives, the decision framework | 25 min |
 | 09 | [Inverse Navier-Stokes](09_inverse_navier_stokes.ipynb) | Infer Reynolds number from flow data — Kovasznay flow, pressure gauge invariance, streamfunction trick | 45 min |
+| **10** | **[Lang-PINN Intro](10_lang_pinn_intro.ipynb)** | **LLM-guided PINNs: 3 agents, 3 modes, PDESpec, SymPy verification** | **30 min** |
+| **11** | **[Hybrid Mode Deep Dive](11_hybrid_mode_deep_dive.ipynb)** | **Feedback loop, quality scoring, adaptive weights, health monitoring** | **30 min** |
+| **12** | **[Bring Your Own PDE](12_bring_your_own_pde.ipynb)** | **End-to-end workflow: describe → verify → generate → customize → train** | **40 min** |
 
-**Total: ~5 hours of hands-on work.**
+**Total: ~7 hours of hands-on work.**
 
 ## How to Use
 
@@ -52,6 +55,7 @@ Work through the notebooks in order. Each one builds on the previous:
 - **05–07** progressively tackle harder problems
 - **08** gives you the honest picture for real-world decisions
 - **09** is an advanced deep-dive into inverse Navier-Stokes
+- **10–12** introduce Lang-PINN: LLM-guided PINN construction and the full workflow
 
 Every notebook is self-contained (runs independently) but references earlier
 concepts. Code cells are meant to be executed — the outputs tell the story.

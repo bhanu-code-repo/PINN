@@ -87,10 +87,11 @@ A Streamlit web application for exploring results without writing code:
 - **Run Detail** — interactive loss curves (zoom, hover, pan), configuration, artifacts
 - **Compare** — overlay loss histories across runs to compare convergence
 - **Parametric Predictor** — drag sliders to explore how solutions change with physical parameters in real time
+- **Lang-PINN** — interactive LLM-guided PINN construction: describe a PDE, get architecture recommendations, generate experiment code
 
 ### Learning Curriculum
 
-A 9-notebook progressive course (~5 hours) that takes someone from zero PINN knowledge to solving their own equations:
+A 12-notebook progressive course (~7 hours) that takes someone from zero PINN knowledge to LLM-guided equation solving:
 
 | Notebook | Topic |
 |----------|-------|
@@ -103,6 +104,9 @@ A 9-notebook progressive course (~5 hours) that takes someone from zero PINN kno
 | 07 | Parametric PINNs and inverse problems |
 | 08 | Honest assessment: when to use PINNs (and when not to) |
 | 09 | Advanced: Inverse Navier-Stokes with Reynolds number inference |
+| 10 | Lang-PINN intro — 3 agents, 3 modes, PDESpec, SymPy verification |
+| 11 | Hybrid mode deep dive — feedback loop, quality scoring, adaptive weights |
+| 12 | Bring your own PDE — end-to-end workflow from description to training |
 
 Each notebook is self-contained, runnable, and produces its own visualisations. The curriculum is designed to build intuition, not just demonstrate code.
 
@@ -134,12 +138,12 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Metric | Count |
 |--------|-------|
 | Python source files | 60+ |
-| Lines of code | ~10,500 |
+| Lines of code | ~11,000 |
 | Experiments | 11 |
-| Learning notebooks | 9 |
+| Learning notebooks | 12 |
 | Analysis notebooks | 4 |
 | Automated tests | 202 (197 fast + 5 convergence) |
-| Development phases | 22 |
+| Development phases | 23 |
 | Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 
@@ -167,7 +171,7 @@ PINN/
 ├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
 ├── libs/lang-pinn/     Lang-PINN multi-agent framework (PDE/PINN/Code agents, orchestrator)
 ├── experiments/        11 self-contained experiment CLIs
-├── learn/              9-notebook progressive curriculum
+├── learn/              12-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
 ├── dashboard.py        Streamlit interactive dashboard
 ├── docs/               Technical documentation
@@ -213,6 +217,7 @@ jupyter lab learn/
 | Training Feedback Agent (health, adaptive weights, quality) | Done |
 | LLM Provider library (Ollama Cloud + local, any provider) | Done |
 | Lang-PINN multi-agent framework (LLM-guided PINNs) | Done |
+| Lang-PINN dashboard page + learning notebooks (10-12) | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

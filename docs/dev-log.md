@@ -444,13 +444,38 @@ CLI entry point and symbolic verification for the Lang-PINN framework.
 - `pyproject.toml` — registered `lang-pinn` console script.
 - 197 total fast tests (up from 175 pre-CLI), all passing.
 
+### Phase 23 — Dashboard Lang-PINN Page + Learning Notebooks 10-12
+
+Dashboard update and 3-notebook Lang-PINN learning series.
+
+- `dashboard.py` — new **Lang-PINN** page (~130 lines):
+  - Mode selector (library / code-agent / hybrid)
+  - Free-text PDE description input with example cards
+  - SymPy verification display
+  - PDE spec and architecture recommendation tables with metrics
+  - Syntax-highlighted generated code with download button
+  - Sidebar navigation updated to 5 pages
+- `learn/10_lang_pinn_intro.ipynb` — Lang-PINN introduction (12 cells, ~30 min):
+  architecture overview, 3 modes table, PDESpec hands-on, SymPy verification
+  (good + broken spec), PINN Agent comparison (ODE vs Burgers), Code Agent
+  template generation, Orchestrator pipeline, CLI usage.
+- `learn/11_hybrid_mode_deep_dive.ipynb` — hybrid mode deep dive (11 cells, ~30 min):
+  feedback loop explanation, quality scoring (good vs bad training run),
+  TrainingHealthMonitor demo, AdaptiveLossWeighter demo, SolveResult exploration,
+  when-to-use decision table.
+- `learn/12_bring_your_own_pde.ipynb` — bring your own PDE (12 cells, ~40 min):
+  full workflow with advection equation, PDESpec definition, SymPy verification,
+  architecture recommendation + domain expertise check, custom ArchitectureRec,
+  code generation, residual customization, exercises (heat/wave/Poisson),
+  complete 12-notebook curriculum summary.
+- Documentation updated: `learn/README.md` (12 notebooks, ~7 hours),
+  `README.md` (tree, notebook count), `docs/project-overview.md` (stats,
+  curriculum, dashboard, roadmap), `docs/dashboard.md` (Lang-PINN page).
+
 ---
 
 ## Roadmap / Deferred
 
-- **Lang-PINN notebooks** — 3-notebook series: intro (3 modes), hybrid deep-dive,
-  bring-your-own-PDE.
-- **Dashboard update** — integrate Lang-PINN results into Streamlit dashboard.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.
