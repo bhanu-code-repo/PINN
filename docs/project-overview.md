@@ -25,6 +25,7 @@ The `pinn` library provides the building blocks that every experiment shares:
 | **PINN Network** | Configurable neural network backbone optimised for physics problems |
 | **Trainer** | Multi-loss training loop with early stopping, gradient clipping, NaN detection, learning rate scheduling, and checkpointing |
 | **Adaptive Refinement (RAR)** | Automatically concentrates collocation points where the equation is hardest to satisfy — like adaptive mesh refinement, but for neural networks |
+| **Training Feedback** | Health monitoring (loss smoothness, gradient health), adaptive loss weighting, post-training quality scoring — inspired by Lang-PINN |
 | **W&B Integration** | Optional Weights & Biases logging for experiment tracking and hyperparameter sweeps |
 | **Utilities** | Reproducible seeding, structured logging, publication-quality plotting |
 
@@ -106,15 +107,14 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 
 | Metric | Count |
 |--------|-------|
-| Python source files | 47 |
-| Lines of code | ~8,200 |
+| Python source files | 50+ |
+| Lines of code | ~9,000 |
 | Experiments | 11 |
 | Learning notebooks | 9 |
 | Analysis notebooks | 4 |
-| Automated tests | 84 (79 fast + 5 convergence) |
-| Development phases | 17 |
-| Git commits | 36 |
-| Documentation files | 5 |
+| Automated tests | 105 (100 fast + 5 convergence) |
+| Development phases | 19 |
+| Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 
 ---
@@ -127,6 +127,8 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 - **Pressure gauge invariance**: proper handling of the pressure-up-to-a-constant ambiguity in incompressible flow
 - **NaN/Inf detection**: training halts immediately with diagnostic output rather than silently producing garbage
 - **Self-describing checkpoints**: model architecture is reconstructed from saved metadata — no need to remember hyperparameters
+- **Adaptive loss weighting**: automatic rebalancing when one loss term dominates — prevents gradient starvation without manual tuning
+- **Training quality scoring**: post-training effectiveness/efficiency/robustness evaluation inspired by the Lang-PINN feedback agent
 - **Lazy optional dependencies**: W&B integration loads only when used; the core library has no heavy optional deps
 
 ---
@@ -135,7 +137,7 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 
 ```
 PINN/
-├── libs/pinn/          Core library (network, trainer, RAR, W&B, utils)
+├── libs/pinn/          Core library (network, trainer, RAR, feedback, W&B, utils)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              9-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
@@ -180,6 +182,8 @@ jupyter lab learn/
 | GitHub Actions CI | Done |
 | Residual-based Adaptive Refinement (RAR) | Done |
 | Weights & Biases integration | Done |
+| Training Feedback Agent (health, adaptive weights, quality) | Done |
+| Lang-PINN multi-agent framework (LLM-guided PINNs) | In Progress |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

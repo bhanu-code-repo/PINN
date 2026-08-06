@@ -20,7 +20,9 @@ PINN/
 │       └── src/pinn/
 │           ├── core/             # PINN MLP backbone
 │           ├── trainer/          # Generic multi-loss trainer
-│           └── utils/            # Plotting helpers
+│           ├── rar.py            # Residual-based Adaptive Refinement
+│           ├── feedback.py       # Training health monitor, adaptive weights, quality eval
+│           └── utils/            # Plotting, logging, seeding
 ├── experiments/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
