@@ -29,6 +29,17 @@ The `pinn` library provides the building blocks that every experiment shares:
 | **W&B Integration** | Optional Weights & Biases logging for experiment tracking and hyperparameter sweeps |
 | **Utilities** | Reproducible seeding, structured logging, publication-quality plotting |
 
+### LLM Abstraction Layer
+
+The `llm-provider` library provides a unified interface for LLM access — the foundation for our Lang-PINN multi-agent framework:
+
+| Feature | Details |
+|---------|---------|
+| **Provider-agnostic** | Ollama Cloud (default), local Ollama, Anthropic, OpenAI, Vertex — any LiteLLM-supported provider works by changing `model` + `api_key` |
+| **Zero-friction default** | Ollama Cloud `gpt-oss:120b` with automatic bearer auth from `.env` |
+| **Sync + Async** | `ask()`, `ask_async()`, batch queries, streaming, system messages |
+| **Config resolution** | Explicit kwargs > environment variables > `.env` file > sensible defaults |
+
 ### 11 Experiments Spanning 4 Domains
 
 Each experiment is a self-contained CLI application with train, predict, and compare commands.
@@ -107,13 +118,13 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 
 | Metric | Count |
 |--------|-------|
-| Python source files | 50+ |
-| Lines of code | ~9,000 |
+| Python source files | 55+ |
+| Lines of code | ~9,500 |
 | Experiments | 11 |
 | Learning notebooks | 9 |
 | Analysis notebooks | 4 |
-| Automated tests | 105 (100 fast + 5 convergence) |
-| Development phases | 19 |
+| Automated tests | 133 (128 fast + 5 convergence) |
+| Development phases | 20 |
 | Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 
@@ -138,6 +149,7 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 ```
 PINN/
 ├── libs/pinn/          Core library (network, trainer, RAR, feedback, W&B, utils)
+├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              9-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
@@ -183,6 +195,7 @@ jupyter lab learn/
 | Residual-based Adaptive Refinement (RAR) | Done |
 | Weights & Biases integration | Done |
 | Training Feedback Agent (health, adaptive weights, quality) | Done |
+| LLM Provider library (Ollama Cloud + local, any provider) | Done |
 | Lang-PINN multi-agent framework (LLM-guided PINNs) | In Progress |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
