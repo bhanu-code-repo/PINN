@@ -386,13 +386,43 @@ Foundation for Lang-PINN multi-agent framework. New workspace member
 - Default: Ollama Cloud `gpt-oss:120b`, reads `OLLAMA_API_KEY` from `.env`.
 - 128 total fast tests (up from 100 pre-llm-provider), all passing.
 
+### Phase 21 — Lang-PINN Multi-Agent Framework
+**PR:** #6 (feature/lang-pinn → main)
+
+LLM-guided PINN construction inspired by Lang-PINN (He et al. 2025).
+Three operating modes: library (deterministic), code-agent (full LLM),
+hybrid (LLM generates code targeting `pinn` library API with feedback loop).
+
+- `libs/lang-pinn/` — new workspace member depending on `pinn` + `llm-provider`.
+- `libs/lang-pinn/src/lang_pinn/schemas.py` — `PDESpec` (structured PDE
+  representation: equation, variables, domain, conditions, parameters, feature
+  flags) and `ArchitectureRec` (architecture recommendation with reasoning).
+- `libs/lang-pinn/src/lang_pinn/agents/pde_agent.py` — PDE Agent: chain-of-thought
+  LLM prompt → JSON extraction → validated `PDESpec`. Handles markdown fences,
+  validates domain bounds, resolves defaults.
+- `libs/lang-pinn/src/lang_pinn/agents/pinn_agent.py` — PINN Agent: rule-based
+  architecture recommendation (ODE→compact, 1D PDE→medium, 2D→large), with
+  feature-driven adjustments (high frequency → sinusoidal Ansatz, sharp gradients
+  → more collocation). Optional LLM mode for unusual problems.
+- `libs/lang-pinn/src/lang_pinn/agents/code_agent.py` — Code Agent: template-based
+  (deterministic, always valid) or LLM-generated experiment code. Both modes
+  target the `pinn` library API (`PINN`, `PINNTrainer`, `TrainingHealthMonitor`,
+  `evaluate_quality`).
+- `libs/lang-pinn/src/lang_pinn/orchestrator.py` — 3-mode orchestrator:
+  - **Library mode**: PDE Agent (LLM) → PINN Agent (rules) → Code Agent (template).
+  - **Code-Agent mode**: all agents use LLM.
+  - **Hybrid mode**: LLM generates + executes + feedback loop (quality threshold
+    with iterative refinement up to `max_iterations`).
+- `libs/lang-pinn/tests/` — 47 tests: schemas (5), PDE Agent (9), PINN Agent (13),
+  Code Agent (12), Orchestrator (8). All LLM calls mocked.
+- 175 total fast tests (up from 128 pre-lang-pinn), all passing.
+
 ---
 
 ## Roadmap / Deferred
 
-- **Lang-PINN multi-agent framework** — LLM-guided PINN construction with 3 modes
-  (library, code-agent, hybrid). Feedback Agent (Phase 1) and LLM Provider
-  (Phase 2) are complete. Next: Lang-PINN agents (Phase 3).
+- **Lang-PINN enhancements** — SymPy-based PDE verification, more PDE templates,
+  CLI entry point (`uv run lang-pinn solve "..."`), real-world integration tests.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.
