@@ -307,6 +307,31 @@ Four NS experiments covering the full spectrum:
 - 70 total fast tests (up from 58 pre-RAR), all passing.
 - Exported `select_rar_points` and `adaptive_train` from `pinn` package `__init__.py`.
 
+### Phase 18 — Weights & Biases integration
+**Commits:** `7c3e83f` Add Weights & Biases integration with lazy imports
+            `3286410` Add project overview for technical and non-technical audiences
+**PR:** #3 (feature/wandb-integration → main)
+
+- `libs/pinn/src/pinn/wandb_integration.py` — optional W&B logging module:
+  - `wandb_init(project, config, name, tags, group)` — initialise a W&B run.
+  - `wandb_callback(log_every, prefix)` — epoch callback that logs per-loss metrics.
+  - `wandb_finish(run_dir, artifact_name)` — saves checkpoint, metrics, and plots
+    as a W&B artifact and closes the run.
+  - Lazy import via `_import_wandb()` — core library works without wandb installed;
+    clear `ImportError` message if missing.
+- `libs/pinn/src/pinn/__init__.py` — lazy `__getattr__` for `wandb_init`,
+  `wandb_callback`, `wandb_finish` to avoid import-time dependency on wandb.
+- `experiments/burgers/train.py` — new `--wandb` and `--wandb-project` CLI flags
+  as proof-of-concept. Callback wired into both standard and RAR training paths.
+- `pyproject.toml` — `wandb>=0.18.0` added as optional dependency
+  (`[project.optional-dependencies] wandb`).
+- `libs/pinn/tests/test_wandb.py` — 9 mock-based tests covering init, callback
+  (every-epoch, log_every, prefix), finish (with/without artifacts, custom name),
+  and ImportError messaging.
+- `docs/project-overview.md` — balanced technical/non-technical project showcase
+  covering all 11 experiments, 84 tests, learning curriculum, dashboard, and roadmap.
+- 79 total fast tests (up from 70 pre-W&B), all passing.
+
 ---
 
 ## Roadmap / Deferred
@@ -314,4 +339,3 @@ Four NS experiments covering the full spectrum:
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.
-- **Weights & Biases integration** — experiment tracking and hyperparameter sweeps.
