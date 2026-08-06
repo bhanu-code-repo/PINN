@@ -40,6 +40,19 @@ The `llm-provider` library provides a unified interface for LLM access — the f
 | **Sync + Async** | `ask()`, `ask_async()`, batch queries, streaming, system messages |
 | **Config resolution** | Explicit kwargs > environment variables > `.env` file > sensible defaults |
 
+### Lang-PINN Multi-Agent Framework
+
+An LLM-guided system for constructing and training PINNs from natural language, inspired by [Lang-PINN (He et al. 2025)](https://arxiv.org/abs/2510.05158):
+
+| Agent | What It Does |
+|-------|-------------|
+| **PDE Agent** | Parses natural language problem descriptions into structured specifications (equation, domain, conditions, parameters) |
+| **PINN Agent** | Recommends network architecture based on PDE features — rule-based heuristics from 11 experiments, or LLM-assisted |
+| **Code Agent** | Generates runnable experiment code targeting the `pinn` library API — deterministic templates or LLM-generated |
+| **Orchestrator** | 3-mode pipeline: library (deterministic), code-agent (full LLM), hybrid (LLM + iterative feedback refinement) |
+
+The hybrid mode is where it gets interesting: the LLM generates code, the `pinn` library executes it, the Feedback Agent scores it, and the LLM refines — a quality-gated loop that combines LLM flexibility with library reliability.
+
 ### 11 Experiments Spanning 4 Domains
 
 Each experiment is a self-contained CLI application with train, predict, and compare commands.
@@ -118,13 +131,13 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 
 | Metric | Count |
 |--------|-------|
-| Python source files | 55+ |
-| Lines of code | ~9,500 |
+| Python source files | 60+ |
+| Lines of code | ~10,500 |
 | Experiments | 11 |
 | Learning notebooks | 9 |
 | Analysis notebooks | 4 |
-| Automated tests | 133 (128 fast + 5 convergence) |
-| Development phases | 20 |
+| Automated tests | 180 (175 fast + 5 convergence) |
+| Development phases | 21 |
 | Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 
@@ -150,6 +163,7 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 PINN/
 ├── libs/pinn/          Core library (network, trainer, RAR, feedback, W&B, utils)
 ├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
+├── libs/lang-pinn/     Lang-PINN multi-agent framework (PDE/PINN/Code agents, orchestrator)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              9-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
@@ -196,7 +210,7 @@ jupyter lab learn/
 | Weights & Biases integration | Done |
 | Training Feedback Agent (health, adaptive weights, quality) | Done |
 | LLM Provider library (Ollama Cloud + local, any provider) | Done |
-| Lang-PINN multi-agent framework (LLM-guided PINNs) | In Progress |
+| Lang-PINN multi-agent framework (LLM-guided PINNs) | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

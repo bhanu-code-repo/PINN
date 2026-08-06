@@ -23,10 +23,15 @@ PINN/
 │   │       ├── rar.py            # Residual-based Adaptive Refinement
 │   │       ├── feedback.py       # Training health monitor, adaptive weights, quality eval
 │   │       └── utils/            # Plotting, logging, seeding
-│   └── llm-provider/             # LLM abstraction layer — see libs/llm-provider/README.md
-│       └── src/llm_provider/
-│           ├── config.py         # LLMConfig: env/.env/kwargs resolution, Ollama Cloud auth
-│           └── client.py         # LLMClient: sync + async, streaming, system messages
+│   ├── llm-provider/             # LLM abstraction layer — see libs/llm-provider/README.md
+│   │   └── src/llm_provider/
+│   │       ├── config.py         # LLMConfig: env/.env/kwargs resolution, Ollama Cloud auth
+│   │       └── client.py         # LLMClient: sync + async, streaming, system messages
+│   └── lang-pinn/                # Lang-PINN multi-agent framework — see libs/lang-pinn/README.md
+│       └── src/lang_pinn/
+│           ├── agents/           # PDE Agent, PINN Agent, Code Agent
+│           ├── orchestrator.py   # 3-mode runner (library / code-agent / hybrid)
+│           └── schemas.py        # PDESpec, ArchitectureRec dataclasses
 ├── experiments/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
@@ -177,11 +182,18 @@ The `pinn` package (in `libs/pinn`) is documented in [libs/pinn/README.md](libs/
 - `set_seed` / `setup_logging` — reproducibility and loguru console+file logging
 - `utils.plotting` — contour, 1D-comparison, and loss-comparison plots (headless-safe)
 
-The `llm-provider` package (in `libs/llm-provider`) is documented in [libs/llm-provider/README.md](libs/llm-provider/README.md). Foundation for Lang-PINN multi-agent framework:
+The `llm-provider` package (in `libs/llm-provider`) is documented in [libs/llm-provider/README.md](libs/llm-provider/README.md). LLM abstraction layer:
 
 - `LLMClient` — sync + async LLM queries with streaming, system messages, batch support
 - `LLMConfig` — settings resolution (kwargs > env > `.env` > defaults), Ollama Cloud auth
 - Ollama Cloud default (`gpt-oss:120b`); any LiteLLM provider works by changing `model` + `api_key`
+
+The `lang-pinn` package (in `libs/lang-pinn`) is documented in [libs/lang-pinn/README.md](libs/lang-pinn/README.md). LLM-guided PINN construction:
+
+- **PDE Agent** — parse natural language into structured `PDESpec` via chain-of-thought LLM prompting
+- **PINN Agent** — recommend architecture from PDE features (rule-based or LLM-assisted)
+- **Code Agent** — generate experiment code targeting the `pinn` library API (template or LLM)
+- **Orchestrator** — 3-mode runner: library (deterministic), code-agent (full LLM), hybrid (LLM + feedback loop)
 
 ## Testing
 
@@ -197,6 +209,7 @@ Layout:
   (weighted losses, early stopping, grad clipping, callbacks), checkpoint round-trip,
   seeding, headless plotting, feedback agent
 - `libs/llm-provider/tests/` — config resolution, client sync/async, all mocked (no API key)
+- `libs/lang-pinn/tests/` — schemas, PDE/PINN/Code agents, orchestrator, all LLM calls mocked
 - `tests/test_experiments_cli.py` — full `train → predict → compare` lifecycle per experiment
   via Typer's in-process `CliRunner`, asserting every artifact is written
 - `tests/test_convergence.py` — marked `slow`: solves `u' = -u` against the exact solution
