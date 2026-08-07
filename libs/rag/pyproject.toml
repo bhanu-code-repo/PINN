@@ -1,0 +1,19 @@
+[project]
+name = "rag"
+version = "0.1.0"
+description = "Structure-based RAG: hierarchical document indexing with BM25 + LLM retrieval"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "llm-provider",
+    "pymupdf4llm>=0.0.17",
+    "rank-bm25>=0.2.2",
+    "loguru>=0.7.0",
+]
+
+[tool.uv.sources]
+llm-provider = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.15,<0.9.0"]
+build-backend = "uv_build"

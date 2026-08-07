@@ -53,6 +53,20 @@ An LLM-guided system for constructing and training PINNs from natural language, 
 | **SymPy Verification** | Validates PDE parses: derivative order, variable consistency, domain bounds, symbolic parseability |
 | **CLI** | `uv run lang-pinn solve/parse/recommend` — Rich tables, syntax-highlighted code, artifact saving |
 
+### Structure-Based RAG Library
+
+A vectorless RAG system that uses document structure as the index instead of vector embeddings:
+
+| Component | What It Does |
+|-----------|-------------|
+| **Markdown Indexer** | Parses headers into hierarchical trees, extracts text per section, tree thinning for small nodes |
+| **PDF Converter** | Zero-cost PDF-to-markdown via pymupdf4llm (font-size header detection, tables, multi-column) |
+| **Knowledge Store** | JSON-based persistence with manifest + per-document structure files, CRUD operations |
+| **BM25 Search** | Keyword pre-filter over document metadata and node content for fast candidate narrowing |
+| **2-Tier Retrieval** | BM25 narrows candidates → LLM reasons over summarized trees → fetches full text for selected nodes |
+
+No vector database, no embeddings, no chunking artifacts. The document structure *is* the index.
+
 The hybrid mode is where it gets interesting: the LLM generates code, the `pinn` library executes it, the Feedback Agent scores it, and the LLM refines — a quality-gated loop that combines LLM flexibility with library reliability.
 
 ### 11 Experiments Spanning 4 Domains
@@ -138,12 +152,12 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Metric | Count |
 |--------|-------|
 | Python source files | 60+ |
-| Lines of code | ~11,000 |
+| Lines of code | ~12,000 |
 | Experiments | 11 |
 | Learning notebooks | 12 |
 | Analysis notebooks | 4 |
-| Automated tests | 202 (197 fast + 5 convergence) |
-| Development phases | 23 |
+| Automated tests | 234 (229 fast + 5 convergence) |
+| Development phases | 24 |
 | Documentation files | 6 |
 | CI/CD | GitHub Actions (lint + test) |
 
@@ -170,6 +184,7 @@ PINN/
 ├── libs/pinn/          Core library (network, trainer, RAR, feedback, W&B, utils)
 ├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
 ├── libs/lang-pinn/     Lang-PINN multi-agent framework (PDE/PINN/Code agents, orchestrator)
+├── libs/rag/           Structure-based RAG (markdown/PDF indexing, BM25 + LLM retrieval)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              12-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
@@ -218,6 +233,8 @@ jupyter lab learn/
 | LLM Provider library (Ollama Cloud + local, any provider) | Done |
 | Lang-PINN multi-agent framework (LLM-guided PINNs) | Done |
 | Lang-PINN dashboard page + learning notebooks (10-12) | Done |
+| Structure-based RAG library (vectorless, BM25 + LLM retrieval) | Done |
+| PINN knowledge base + RAG-enhanced recommendations | Planned |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 
