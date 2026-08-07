@@ -1,0 +1,89 @@
+{
+  "doc_name": "high_frequency_odes",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/high_frequency_odes.md",
+  "pde_type": "Damped harmonic oscillator: u'' + 2*zeta*omega*u' + omega^2*u = f(t)",
+  "spatial_dim": null,
+  "known_issues": [
+    "No ansatz for high omega",
+    "Ansatz with wrong frequency",
+    "Phase error",
+    "Van der Pol stiffness",
+    "IVP vs BVP mismatch"
+  ],
+  "techniques": [
+    "Exact sinusoidal ansatz",
+    "A",
+    "For nonlinear oscillators",
+    "Multi-scale time embedding",
+    "Normalization",
+    "Dominant balance",
+    "Fourier features"
+  ],
+  "keywords": [
+    "ansatz",
+    "collocation",
+    "parametric",
+    "periodic",
+    "rar",
+    "spectral bias"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "High-Frequency ODEs and Stiff Oscillators",
+      "text": "# High-Frequency ODEs and Stiff Oscillators",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nDamped harmonic oscillator: u'' + 2*zeta*omega*u' + omega^2*u = f(t)\nHigh-frequency limit: omega >> 1 (many oscillations in [0, T])\nStiff limit: zeta << 1 (underdamped, solution is cos/sin with slowly decaying envelope)",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- For omega > 10, vanilla PINN with tanh fails completely — spectral bias prevents learning oscillations\n- For omega = 50, standard PINN error > 1e-0; sinusoidal ansatz reduces to ~1e-3\n- Sinusoidal ansatz is mandatory: u(t) = A(t)*cos(omega*t) + B(t)*sin(omega*t) where A,B are NNs\n- This splits the problem: fast oscillation is handled by exact analytic structure, NN learns slow envelope\n- Underdamped (0 < zeta < 1): envelope decays as exp(-zeta*omega*t) — this is smooth, NN handles it\n- Overdamped (zeta > 1): no oscillation, two real modes — tanh PINN works fine\n- Driven systems: f(t) = cos(omega_d * t) — resonance if omega_d near omega, PINN needs both freq\n- Van der Pol oscillator (nonlinear): strongly oscillatory, requires special handling for mu >> 1",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nFor high-frequency linear oscillator (omega > 10):\n- Sinusoidal ansatz: u(t) = A(t)*cos(omega*t) + B(t)*sin(omega*t)\n- A(t) and B(t): 2-3 layer x 32 neuron tanh networks — smooth functions, easy to learn\n- IC: u(0) = A(0)*1 + B(0)*0 = A(0), u'(0) = A'(0) + omega*B(0) — two IC conditions in (A,B)\n- Collocation: 5,000 points in t in [0, T], uniform (envelope is smooth, no RAR needed)\n- omega as network input: if parametric in omega, embed log(omega) as input\n\nFor general stiff ODEs:\n- Identify stiff and non-stiff components (spectral decomposition if linear)\n- Handle stiff part analytically; use NN for slow component only\n- SIREN: sin activation useful for moderate omega (10-50); exact ansatz better for omega > 50",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- No ansatz for high omega: tanh network cannot represent cos(50*t) — fundamentally wrong architecture choice\n- Ansatz with wrong frequency: if omega is approximate, ansatz oscillates at wrong rate, residuals are huge\n- Phase error: even with correct ansatz, A(t) and B(t) may have small errors that cause accumulating phase error\n- Van der Pol stiffness: for mu > 100, stiff limit ODE — must use time-marching with very small windows\n- IVP vs BVP mismatch: shooting methods for BVP with high omega are unstable; PINN BVP formulation is better",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Exact sinusoidal ansatz: u(t) = exp(-zeta*omega*t) * [A(t)*cos(omega_d*t) + B(t)*sin(omega_d*t)]\n  where omega_d = omega*sqrt(1-zeta^2) (damped natural frequency)\n- A(t) and B(t) represent slow residual deviations from analytic form — should be near-constant for linear\n- For nonlinear oscillators: split u = u_linear + delta_u, solve for delta_u with PINN\n- Multi-scale time embedding: provide [t, t*omega, t*omega^2] as inputs; lets network attend to different scales\n- Normalization: normalize t to [0, 2*pi] per period — omega-independent problem in normalized coordinates\n- Dominant balance: use asymptotic approximation as initial guess / warm start for PINN\n- Fourier features: embed t -> [cos(k*omega*t), sin(k*omega*t)] for k=1..5 — explicit frequency injection",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Sitzmann, Martel, Bergman, Lindell, Wetzstein (2020) — Implicit neural representations with periodic activation functions (SIREN), NeurIPS\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP\n- Fang (2021) — A high-efficient hybrid physics-informed neural networks based on convolutional neural network\n- Chen, Hu, Xu (2022) — Meta-learning for physics-informed neural networks: A case study of stiff ordinary differential equations",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

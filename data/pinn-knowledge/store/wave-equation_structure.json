@@ -1,0 +1,87 @@
+{
+  "doc_name": "wave_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/wave_equation.md",
+  "pde_type": "Hyperbolic PDE: u_tt = c^2 * u_xx (1D) or u_tt = c^2 * laplacian(u) (nD)",
+  "spatial_dim": null,
+  "known_issues": [
+    "Spectral bias",
+    "IC velocity violation",
+    "Causality violation",
+    "Resonance instability",
+    "Reflection artifacts at boundaries"
+  ],
+  "techniques": [
+    "Causal training",
+    "Fourier feature embedding",
+    "SIREN",
+    "Separate loss terms for u and u_t ICs with independent weights; tune lambda_u_t = 10-100",
+    "Time-marching",
+    "Domain decomposition"
+  ],
+  "keywords": [
+    "collocation",
+    "heat",
+    "periodic",
+    "spectral bias",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Wave Equation",
+      "text": "# Wave Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nHyperbolic PDE: u_tt = c^2 * u_xx (1D) or u_tt = c^2 * laplacian(u) (nD)\nRequires two initial conditions: u(x,0) = f(x) and u_t(x,0) = g(x).",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Significantly harder than heat equation for PINNs — hyperbolic character, no dissipation\n- High wave speed c causes rapid oscillation; spectral bias prevents learning high-freq waves\n- Standard PINN fails for c > 10 without Fourier features or special architecture\n- For c=1 on [0,1]x[0,1]: vanilla PINN achieves ~1e-3 L2 error with 10k points\n- For c=10: error typically > 1e-1 without Fourier features; Fourier features reduce to ~1e-2\n- Two ICs (displacement and velocity) must both be weighted carefully\n- Long-time integration accumulates error — wave packets drift from true solution\n- Causal training critical: PINN can fit t=T while violating t in (0,T)",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 6-8 hidden layers x 64-128 neurons\n- Activation: tanh (preferred) or sin (for wave-dominated problems)\n- Fourier feature embedding: map (x,t) -> [sin(2pi*k*x/L), cos(2pi*k*x/L), ...] for k=1..K, K=10-20\n- Collocation points: 10,000-20,000 interior; 1,000 boundary; 500 per IC (u and u_t separately)\n- For c > 5: mandatory Fourier feature embedding or sinusoidal activation (SIREN)\n- Two separate IC losses: L_IC_u = ||NN(x,0) - f(x)||^2 and L_IC_ut = ||NN_t(x,0) - g(x)||^2",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Spectral bias: network learns low-frequency components, misses high-freq wave structure\n- IC velocity violation: u_t IC is a derivative condition — often weighted too low, poorly enforced\n- Causality violation: without causal weighting, late-time fit dominates and early dynamics are wrong\n- Resonance instability: for certain domain sizes and c, residual oscillates and fails to converge\n- Reflection artifacts at boundaries: absorbing BCs harder than Dirichlet/Neumann",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Causal training (Wang et al. 2022): epsilon-causal weights w_i = exp(-epsilon * sum of earlier residuals)\n- Fourier feature embedding: essential for c > 5\n- SIREN (Sitzmann et al. 2020): sinusoidal activation, specialized init — excellent for wave problems\n- Separate loss terms for u and u_t ICs with independent weights; tune lambda_u_t = 10-100\n- Time-marching: split domain into overlapping time windows, use solution from window k as IC for k+1\n- Domain decomposition (XPINNs): particularly effective for wave propagation problems",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Sitzmann, Martel, Bergman, Lindell, Wetzstein (2020) — Implicit neural representations with periodic activation functions (SIREN), NeurIPS\n- Wang, Teng, Perdikaris (2022) — Understanding and mitigating gradient pathology, SIAM\n- Moseley, Markham, Nissen-Meyer (2020) — Solving the wave equation with physics-informed deep learning\n- Waheed, Haghighat, Alkhalifah, Song, Hao (2021) — PINNeik: Eikonal solution using physics-informed neural networks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

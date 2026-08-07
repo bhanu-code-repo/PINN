@@ -1,0 +1,93 @@
+{
+  "doc_name": "collocation_strategies",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/collocation_strategies.md",
+  "pde_type": "Not a PDE — a sampling strategy for selecting where to evaluate the PDE residual during training.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Too few points",
+    "Clustered points",
+    "RAR feedback loop",
+    "Static collocation",
+    "Temporal bias absent"
+  ],
+  "techniques": [
+    "LHS",
+    "RAR with warmup",
+    "Residual-proportional sampling",
+    "Temporal bias",
+    "Domain boundary oversampling",
+    "Resampling every epoch",
+    "For 1D problems",
+    "Minimum points per region"
+  ],
+  "keywords": [
+    "advection",
+    "allen-cahn",
+    "burgers",
+    "collocation",
+    "heat",
+    "helmholtz",
+    "poisson",
+    "rar",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Collocation Strategies",
+      "text": "# Collocation Strategies",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNot a PDE — a sampling strategy for selecting where to evaluate the PDE residual during training.\nCollocation point placement is one of the highest-leverage design choices in PINN setup.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Uniform random sampling is the default but rarely optimal\n- Latin Hypercube Sampling (LHS) provides better space-filling than uniform; use for d >= 2\n- RAR (Residual-based Adaptive Refinement) is the most impactful single improvement for hard problems\n- Sobol sequences and Halton sequences: low-discrepancy quasi-Monte Carlo; better than random for smooth problems\n- Optimal transport for collocation: distribute points proportional to sqrt(|residual|) — theoretical optimum\n- For time-dependent PDEs: temporal collocation density must be higher at early times (fast dynamics)\n- For problems with sharp features (shocks, interfaces): 10-100x more points needed in feature region\n- Empirical rule: total points N should satisfy N > 10^d * k_max where d=dimension, k_max=highest frequency",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nSampling strategy selection guide:\n- Smooth elliptic problems (Poisson, Laplace): LHS or Sobol, uniform in time if parabolic\n- Parabolic with smooth solution (heat): LHS with mild temporal bias toward t=0\n- Hyperbolic with shocks (Burgers, Advection): uniform + RAR (mandatory)\n- High-frequency (Helmholtz k>5, Wave c>5): uniform + Fourier-frequency-aligned sampling\n- Phase-field (Allen-Cahn): RAR with interface detection\n- Stiff ODE systems: dense sampling near fast transient regions\n\nRAR protocol:\n1. Train for K=1000 epochs with initial collocation set\n2. Evaluate |residual| on dense evaluation grid (10x the collocation points)\n3. Add M new points sampled with probability proportional to |residual|^p, p=1 or p=2\n4. Retrain; repeat every K epochs for 5-10 rounds",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Too few points: residual is satisfied at collocation points but wildly wrong elsewhere — overfitting to points\n- Clustered points: if all points cluster in one region, the rest of the domain is unconstrained\n- RAR feedback loop: residual peaks at true solution discontinuity, RAR adds points, network fits discontinuity incorrectly\n- Static collocation: re-using same points every epoch can lead to memorization rather than generalization\n- Temporal bias absent: uniform sampling in time leads to poor IC enforcement relative to final-time behavior",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- LHS: use scipy.stats.qmc.LatinHypercube for space-filling sampling; strictly better than random in 2D+\n- RAR with warmup: do not start RAR until after 2000 training epochs; early residuals are uninformative\n- Residual-proportional sampling: new_points ~ p(x) where p(x) = |r(x)|/int(|r|)\n- Temporal bias: sample t ~ Beta(0.5, 2.0) to oversample early times, or use t = t_max * u^2 where u ~ Uniform\n- Domain boundary oversampling: always use 10-20x more boundary points than interior per unit area\n- Resampling every epoch: dynamically resample collocation each epoch (more expensive, avoids memorization)\n- For 1D problems: rejection sampling with density proportional to |d^2u/dx^2| of a preliminary solution\n- Minimum points per region: if domain has N distinct subregions, ensure each has at least 100 points",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Lu, Meng, Mao, Karniadakis (2021) — DeepXDE: A deep learning library for solving differential equations, SIAM Review\n- Wu, Zhu, Tan, Kartha, Lu (2023) — A comprehensive study of non-adaptive and residual-based adaptive sampling for physics-informed neural networks\n- Daw, Bu, Wang, Perdikaris, Karpatne (2022) — Mitigating propagation failures in physics-informed neural networks using retain-resample-release (R3) sampling\n- Tang, Haahr, Chen (2023) — DAS: A deep adaptive sampling method for solving partial differential equations",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

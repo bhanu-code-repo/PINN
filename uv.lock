@@ -1166,6 +1166,7 @@ source = { editable = "libs/lang-pinn" }
 dependencies = [
     { name = "llm-provider" },
     { name = "pinn" },
+    { name = "rag" },
     { name = "sympy" },
 ]
 
@@ -1173,6 +1174,7 @@ dependencies = [
 requires-dist = [
     { name = "llm-provider", editable = "libs/llm-provider" },
     { name = "pinn", editable = "libs/pinn" },
+    { name = "rag", editable = "libs/rag" },
     { name = "sympy", specifier = ">=1.13.0" },
 ]
 

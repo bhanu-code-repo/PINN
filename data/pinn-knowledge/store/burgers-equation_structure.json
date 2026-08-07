@@ -1,0 +1,90 @@
+{
+  "doc_name": "burgers_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/burgers_equation.md",
+  "pde_type": "Nonlinear hyperbolic PDE: u_t + u*u_x = nu*u_xx",
+  "spatial_dim": null,
+  "known_issues": [
+    "Shock region starvation",
+    "Gradient explosion at shock",
+    "Mode collapse in time",
+    "Causality violation",
+    "High-frequency spectral bias"
+  ],
+  "techniques": [
+    "RAR",
+    "Causal training",
+    "Loss weighting",
+    "Curriculum",
+    "For nu < 0.005",
+    "Fourier feature embedding can help but tanh is usually sufficient for Burgers"
+  ],
+  "keywords": [
+    "advection",
+    "ansatz",
+    "burgers",
+    "collocation",
+    "curriculum",
+    "loss weighting",
+    "rar",
+    "spectral bias"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Burgers Equation",
+      "text": "# Burgers Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNonlinear hyperbolic PDE: u_t + u*u_x = nu*u_xx\nCombines nonlinear advection with viscous diffusion. Standard test case for shock-capturing in PINNs.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Low viscosity (nu < 0.01) causes shock formation — this is the primary difficulty\n- Standard PINN fails without modification for nu < 0.01: residual stagnates near shock\n- At nu = 0.01/pi (Raissi et al. 2019 benchmark), vanilla PINN achieves ~1e-3 L2 error with 10k collocation points\n- At nu = 0.001, vanilla PINN typically fails; RAR or causal training required\n- Shock location must be well-covered by collocation; uniform sampling misses it\n- Time domain [0, 1] with spatial domain [-1, 1] is the standard benchmark setup",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 8 hidden layers x 20 neurons (Raissi original); modern recommendation is 5-6 layers x 64 neurons\n- Activation: tanh (smooth, avoids kinks in residual)\n- Weight initialization: Glorot uniform\n- Collocation points: 10,000 interior + 200 boundary + 100 initial condition points minimum\n- For nu < 0.01: increase to 20,000-50,000 interior points, use RAR to concentrate near shock\n- No ansatz needed for Dirichlet BCs (standard soft constraint works)\n- Input normalization to [-1, 1] for both x and t",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Shock region starvation: residual loss dominated by smooth regions; shock region under-sampled\n- Gradient explosion at shock: automatic differentiation produces large gradients that destabilize training\n- Mode collapse in time: network learns t=0 IC but fails to propagate solution forward\n- Causality violation: network may satisfy final-time state but have wrong transient — use causal weighting\n- High-frequency spectral bias: tanh saturates, smooth output cannot represent sharp shocks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- RAR (Residual-based Adaptive Refinement): add points where |residual| > threshold every 1000 epochs\n- Causal training (Wang et al. 2022): weight time slices so early time residuals are low before training late time\n- Loss weighting: BC/IC weights typically need lambda=10-100x physics loss to enforce properly\n- Curriculum: train at nu=0.1 first, reduce to target nu progressively\n- For nu < 0.005: consider domain decomposition (XPINNs) with interface at shock location\n- Fourier feature embedding can help but tanh is usually sufficient for Burgers",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP\n- Wang, Teng, Perdikaris (2022) — Understanding and mitigating gradient pathology, SIAM\n- Lu et al. (2021) — DeepXDE: A deep learning library for solving differential equations\n- Mao, Jagtap, Karniadakis (2020) — Physics-informed neural networks for high-speed flows",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

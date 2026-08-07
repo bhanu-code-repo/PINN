@@ -68,3 +68,4 @@ class ArchitectureRec:
     loss_weights: dict[str, float] = field(default_factory=lambda: {"ic": 1.0, "physics": 1.0})
     n_collocation: int = 200
     reasoning: str = ""  # Why this architecture was chosen
+    knowledge_context: str = ""  # Retrieved literature context from RAG

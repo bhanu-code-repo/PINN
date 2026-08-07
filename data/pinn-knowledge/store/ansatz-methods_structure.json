@@ -1,0 +1,89 @@
+{
+  "doc_name": "ansatz_methods",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/ansatz_methods.md",
+  "pde_type": "Not a PDE — a construction strategy for enforcing BCs/ICs exactly within the network architecture.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Distance function accuracy",
+    "t=0 IC ansatz limitation",
+    "Over-constrained",
+    "Periodic BC",
+    "Hard IC + long time",
+    "Wrong phi"
+  ],
+  "techniques": [
+    "Distance-to-boundary",
+    "Exact IC",
+    "Hard periodic BC",
+    "R3 ansatz",
+    "Combine hard IC with soft residual",
+    "Hard Dirichlet + soft Neumann",
+    "Ansatz for symmetry"
+  ],
+  "keywords": [
+    "ansatz",
+    "helmholtz",
+    "periodic",
+    "rar",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Ansatz Methods (Hard Constraint Enforcement)",
+      "text": "# Ansatz Methods (Hard Constraint Enforcement)",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNot a PDE — a construction strategy for enforcing BCs/ICs exactly within the network architecture.\nSoft constraints use loss penalties; hard constraints embed conditions into the network structure.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Hard constraints guarantee zero BC/IC error regardless of training — soft constraints only approximate\n- For Dirichlet BC (u=g on boundary): hard ansatz u(x) = g(x) + phi(x)*NN(x), where phi=0 on boundary\n- phi(x) can be: signed distance function, distance to boundary, product of boundary-vanishing terms\n- For IC at t=0: u(x,t) = u0(x) + t*NN(x,t) — exactly enforces u(x,0) = u0(x)\n- Hard constraints remove BC/IC from loss, freeing optimizer to focus entirely on PDE residual\n- Performance gain: typically 2-10x fewer training steps; L2 error often 1-2 orders of magnitude lower\n- Lagaris et al. (1998) first proposed this; modern versions use learned distance functions\n- Sinusoidal ansatz for high-frequency problems: u(x) = sum_k [a_k * sin(k*pi*x/L)] for eigenfunction problems",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nHard ansatz construction:\n- Dirichlet BC on [0,1]: u(x) = x*(1-x)*NN(x) + (1-x)*g(0) + x*g(1)\n- Dirichlet BC on [a,b]: u(x) = (x-a)*(b-x)/((b-a)^2)*NN(x) + boundary_interpolation\n- IC at t=0: u(x,t) = u0(x) + t*NN(x,t) — zero extra parameters, exact IC\n- Mixed BC: combine distance functions: phi(x) = product of (x-x_i) for each Dirichlet boundary\n- Periodic BC: u(x) = NN(sin(pi*x/L), cos(pi*x/L)) — inputs are automatically periodic\n- Signed distance function: phi(x) = dist(x, boundary); works for arbitrary geometries\n\nSinusoidal ansatz for eigenvalue problems:\n- Helmholtz/wave: u(x) = sum_{k=1}^{K} c_k * sin(k*pi*x/L), train c_k\n- Hybrid: u(x) = sin(k*pi*x/L) * NN(x) — forces leading frequency structure",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Distance function accuracy: for complex geometries, phi may not be smooth or accurate\n- t=0 IC ansatz limitation: u0(x) must be known analytically; cannot use for data-driven IC\n- Over-constrained: hard ansatz for Robin/Neumann BCs requires differentiation of phi — error-prone\n- Periodic BC: sin/cos embedding works for regular domains; complex geometry periodic BCs harder\n- Hard IC + long time: t*NN grows unbounded for large t, causing optimization difficulties\n- Wrong phi: if phi does not vanish exactly on boundary, constraint is not exactly enforced",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Distance-to-boundary: use approximate signed distance (|x| - 1 for [-1,1] domain) as phi\n- Exact IC: always prefer hard IC constraint u(x,t) = u0(x) + t*NN when u0 is analytically known\n- Hard periodic BC: embed (sin(2pi*x/L), cos(2pi*x/L)) as inputs instead of raw x\n- R3 ansatz (Sukumar & Srivastava 2022): implicit boundary representation via R-functions\n- Combine hard IC with soft residual: eliminate IC loss, let optimizer focus on physics\n- Hard Dirichlet + soft Neumann: enforce essential BCs hard, natural BCs soft\n- Ansatz for symmetry: if solution is even, use u(x) = NN(x^2) to enforce symmetry exactly",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Lagaris, Likas, Fotiadis (1998) — Artificial neural networks for solving ODE/PDE boundary value problems, IEEE TNN\n- Sukumar, Srivastava (2022) — Exact imposition of boundary conditions with distance functions in physics-informed deep neural networks, CMAME\n- Dong, Ni (2021) — A method for representing periodic functions and enforcing exactly periodic boundary conditions with deep neural networks\n- McFall, Mahan (2009) — Artificial neural network method for solution of boundary value problems with exact satisfaction of arbitrary boundary conditions",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

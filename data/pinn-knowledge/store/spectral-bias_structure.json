@@ -1,0 +1,89 @@
+{
+  "doc_name": "spectral_bias",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/spectral_bias.md",
+  "pde_type": "Not a PDE — a fundamental property of neural network training dynamics.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Silent failure",
+    "Diagnostic",
+    "Fourier feature sigma too small",
+    "SIREN divergence",
+    "Frequency aliasing"
+  ],
+  "techniques": [
+    "Fourier feature embedding",
+    "For Helmholtz k=10",
+    "For Burgers shock",
+    "NTK monitoring",
+    "Frequency sweep",
+    "Modified MLP",
+    "Spectral normalization of weights",
+    "Input gradient monitoring"
+  ],
+  "keywords": [
+    "burgers",
+    "helmholtz",
+    "high frequency",
+    "periodic",
+    "spectral bias"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Spectral Bias (F-Principle)",
+      "text": "# Spectral Bias (F-Principle)",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNot a PDE — a fundamental property of neural network training dynamics.\nAffects all PINNs. Understanding spectral bias is prerequisite for diagnosing PINN failures.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- F-principle (Xu et al. 2019): neural networks trained with gradient descent learn low-frequency components first\n- Convergence rate for frequency omega scales as ~exp(-omega^2 * t) during early training\n- Implication: high-frequency solution components (from high-k PDEs, sharp features) are learned last or not at all\n- NTK (Neural Tangent Kernel) perspective: kernel eigenvalue spectrum governs convergence rate per frequency\n- Low eigenvalues in NTK = slow learning for that frequency component\n- Tanh networks have NTK spectrum that decays rapidly with frequency\n- ReLU networks have faster high-freq learning than tanh — but lose smoothness for PDE residuals\n- Magnitude of spectral bias grows with depth: deeper networks are more biased toward low frequencies\n- Practical threshold: if target solution requires frequencies > ~10 (in normalized domain), expect spectral bias issues",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nMitigation strategies ranked by effectiveness:\n1. Fourier feature embedding: map x -> [sin(B*x), cos(B*x)] where B sampled from N(0, sigma^2)\n2. SIREN: sinusoidal activations with special initialization (Sitzmann et al. 2020)\n3. Multiscale architecture: parallel branches for different frequency ranges, combine outputs\n4. Random feature networks: fixed random Fourier features in first layer, train only output layer\n5. Modified MLP (Wang et al. 2022): input encoding with UV transform to normalize NTK spectrum",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Silent failure: network appears to train (loss decreasing) but high-frequency components are missing\n- Diagnostic: compare Fourier spectrum of PINN output vs reference solution\n- Fourier feature sigma too small: only captures low freq; sigma too large: optimization is unstable\n- SIREN divergence: sin activation with wrong init diverges; must use Sitzmann initialization exactly\n- Frequency aliasing: if dominant frequency is not in embedding, network learns wrong modes",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Fourier feature embedding: sigma for B should be ~k_max/3 where k_max is highest relevant frequency\n  - For Helmholtz k=10: sigma ~ 10; embed 256 frequencies\n  - For Burgers shock (effective frequency ~50): sigma ~ 15-20\n- NTK monitoring: compute eigenvalue spectrum of NTK at initialization; check if target frequencies have non-zero eigenvalues\n- Frequency sweep: train on single-frequency targets to measure per-frequency convergence rate for given architecture\n- Modified MLP: u(x) = W_out * (U(x) * V(x)) where U,V are tanh-encoded branch networks\n- Spectral normalization of weights: reduces variance in NTK spectrum\n- Input gradient monitoring: if d(loss)/d(input) is low at high spatial frequencies, spectral bias is present",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Xu, Zhang, Luo, Xiao, Ma (2019) — Frequency principle: Fourier analysis sheds light on implicit regularization of deep neural networks, ICLR\n- Tancik, Srinivasan, Mildenhall et al. (2020) — Fourier features let networks learn high frequency functions in low dimensional domains, NeurIPS\n- Wang, Teng, Perdikaris (2022) — Understanding and mitigating gradient pathology in physics-informed neural networks, SIAM\n- Sitzmann, Martel, Bergman, Lindell, Wetzstein (2020) — Implicit neural representations with periodic activation functions, NeurIPS\n- Jacot, Gabriel, Hongler (2018) — Neural tangent kernel: Convergence and generalization in neural networks, NeurIPS",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

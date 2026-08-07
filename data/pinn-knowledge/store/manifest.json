@@ -1,0 +1,678 @@
+[
+  {
+    "doc_id": "advection-equation",
+    "doc_name": "advection_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/advection_equation.md",
+    "pde_type": "Linear first-order hyperbolic PDE: u_t + c*u_x = 0",
+    "spatial_dim": null,
+    "techniques": [
+      "Characteristics-based sampling",
+      "Dense IC enforcement",
+      "Causal temporal weighting",
+      "Fourier feature embedding tuned to advection speed",
+      "Method of characteristics hybrid",
+      "Consider finite-difference pretraining",
+      "Time-stepping with small windows"
+    ],
+    "keywords": [
+      "advection",
+      "collocation",
+      "periodic",
+      "spectral bias",
+      "wave"
+    ],
+    "known_issues": [
+      "Trivial solution",
+      "Phase velocity error",
+      "Discontinuous IC",
+      "Large c with periodic domain",
+      "Training on residuals only"
+    ],
+    "node_count": 7,
+    "total_tokens": 452,
+    "indexed_at": "2026-08-07T20:56:19.210512+00:00"
+  },
+  {
+    "doc_id": "allen-cahn-equation",
+    "doc_name": "allen_cahn_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/allen_cahn_equation.md",
+    "pde_type": "Nonlinear reaction-diffusion PDE: u_t = epsilon^2 * u_xx + u - u^3",
+    "spatial_dim": null,
+    "techniques": [
+      "Causal training",
+      "RAR",
+      "Interface tracking",
+      "Hard periodic BC",
+      "Conservation loss",
+      "Adaptive epsilon curriculum",
+      "Time-marching with small windows is often more reliable than full space-time solve"
+    ],
+    "keywords": [
+      "allen-cahn",
+      "ansatz",
+      "collocation",
+      "curriculum",
+      "periodic",
+      "rar"
+    ],
+    "known_issues": [
+      "Interface smearing",
+      "Phase pinning",
+      "Mass non-conservation",
+      "Stiff dynamics",
+      "Periodic BC soft enforcement"
+    ],
+    "node_count": 7,
+    "total_tokens": 442,
+    "indexed_at": "2026-08-07T20:56:19.212072+00:00"
+  },
+  {
+    "doc_id": "ansatz-methods",
+    "doc_name": "ansatz_methods",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/ansatz_methods.md",
+    "pde_type": "Not a PDE — a construction strategy for enforcing BCs/ICs exactly within the network architecture.",
+    "spatial_dim": null,
+    "techniques": [
+      "Distance-to-boundary",
+      "Exact IC",
+      "Hard periodic BC",
+      "R3 ansatz",
+      "Combine hard IC with soft residual",
+      "Hard Dirichlet + soft Neumann",
+      "Ansatz for symmetry"
+    ],
+    "keywords": [
+      "ansatz",
+      "helmholtz",
+      "periodic",
+      "rar",
+      "wave"
+    ],
+    "known_issues": [
+      "Distance function accuracy",
+      "t=0 IC ansatz limitation",
+      "Over-constrained",
+      "Periodic BC",
+      "Hard IC + long time",
+      "Wrong phi"
+    ],
+    "node_count": 7,
+    "total_tokens": 547,
+    "indexed_at": "2026-08-07T20:56:19.213830+00:00"
+  },
+  {
+    "doc_id": "burgers-equation",
+    "doc_name": "burgers_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/burgers_equation.md",
+    "pde_type": "Nonlinear hyperbolic PDE: u_t + u*u_x = nu*u_xx",
+    "spatial_dim": null,
+    "techniques": [
+      "RAR",
+      "Causal training",
+      "Loss weighting",
+      "Curriculum",
+      "For nu < 0.005",
+      "Fourier feature embedding can help but tanh is usually sufficient for Burgers"
+    ],
+    "keywords": [
+      "advection",
+      "ansatz",
+      "burgers",
+      "collocation",
+      "curriculum",
+      "loss weighting",
+      "rar",
+      "spectral bias"
+    ],
+    "known_issues": [
+      "Shock region starvation",
+      "Gradient explosion at shock",
+      "Mode collapse in time",
+      "Causality violation",
+      "High-frequency spectral bias"
+    ],
+    "node_count": 7,
+    "total_tokens": 417,
+    "indexed_at": "2026-08-07T20:56:19.215242+00:00"
+  },
+  {
+    "doc_id": "collocation-strategies",
+    "doc_name": "collocation_strategies",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/collocation_strategies.md",
+    "pde_type": "Not a PDE — a sampling strategy for selecting where to evaluate the PDE residual during training.",
+    "spatial_dim": null,
+    "techniques": [
+      "LHS",
+      "RAR with warmup",
+      "Residual-proportional sampling",
+      "Temporal bias",
+      "Domain boundary oversampling",
+      "Resampling every epoch",
+      "For 1D problems",
+      "Minimum points per region"
+    ],
+    "keywords": [
+      "advection",
+      "allen-cahn",
+      "burgers",
+      "collocation",
+      "heat",
+      "helmholtz",
+      "poisson",
+      "rar",
+      "wave"
+    ],
+    "known_issues": [
+      "Too few points",
+      "Clustered points",
+      "RAR feedback loop",
+      "Static collocation",
+      "Temporal bias absent"
+    ],
+    "node_count": 7,
+    "total_tokens": 560,
+    "indexed_at": "2026-08-07T20:56:19.217448+00:00"
+  },
+  {
+    "doc_id": "curriculum-training",
+    "doc_name": "curriculum_training",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/curriculum_training.md",
+    "pde_type": "Not a PDE — a training strategy for time-dependent PDEs where standard full-domain training fails.",
+    "spatial_dim": null,
+    "techniques": [
+      "Parameter curriculum",
+      "Domain curriculum",
+      "Noise curriculum",
+      "Resolution curriculum",
+      "Spatial",
+      "Temporal",
+      "IC for each window",
+      "Transfer learning",
+      "Adaptive window width"
+    ],
+    "keywords": [
+      "advection",
+      "allen-cahn",
+      "burgers",
+      "collocation",
+      "curriculum",
+      "wave"
+    ],
+    "known_issues": [
+      "Window interface discontinuity",
+      "Error accumulation",
+      "Window width too large",
+      "Window width too small",
+      "Overlap region conflicts"
+    ],
+    "node_count": 7,
+    "total_tokens": 635,
+    "indexed_at": "2026-08-07T20:56:19.219581+00:00"
+  },
+  {
+    "doc_id": "heat-equation",
+    "doc_name": "heat_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/heat_equation.md",
+    "pde_type": "Parabolic PDE: u_t = alpha * u_xx (1D) or u_t = alpha * laplacian(u) (nD)",
+    "spatial_dim": null,
+    "techniques": [
+      "Standard Adam optimizer with lr=1e-3 followed by L-BFGS for polishing",
+      "No special techniques needed for standard 1D/2D problems",
+      "For oscillatory IC",
+      "For long time domains",
+      "IC hard constraint"
+    ],
+    "keywords": [
+      "ansatz",
+      "burgers",
+      "collocation",
+      "heat",
+      "poisson",
+      "spectral bias"
+    ],
+    "known_issues": [
+      "Essentially none for simple geometries — this is the \"works out of the box\" case",
+      "Multi-scale domains with different thermal conductivities",
+      "High-dimensional inputs (d > 5)",
+      "Long time horizons (t >> 1/alpha)",
+      "Oscillatory IC (e.g., u0 = sin(20*pi*x))"
+    ],
+    "node_count": 7,
+    "total_tokens": 394,
+    "indexed_at": "2026-08-07T20:56:19.221088+00:00"
+  },
+  {
+    "doc_id": "helmholtz-equation",
+    "doc_name": "helmholtz_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/helmholtz_equation.md",
+    "pde_type": "Elliptic PDE: u_xx + u_yy + k^2 * u = f(x,y)",
+    "spatial_dim": null,
+    "techniques": [
+      "Fourier feature embedding",
+      "SIREN",
+      "Input scaling",
+      "Multiscale network",
+      "Preconditioning",
+      "For high k",
+      "Gauss-Legendre quadrature for collocation"
+    ],
+    "keywords": [
+      "collocation",
+      "helmholtz",
+      "high frequency",
+      "periodic",
+      "spectral bias",
+      "wave"
+    ],
+    "known_issues": [
+      "Spectral bias",
+      "Under-resolved collocation",
+      "SIREN instability",
+      "Indefinite operator",
+      "Radiation BCs"
+    ],
+    "node_count": 7,
+    "total_tokens": 511,
+    "indexed_at": "2026-08-07T20:56:19.222780+00:00"
+  },
+  {
+    "doc_id": "high-frequency-odes",
+    "doc_name": "high_frequency_odes",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/high_frequency_odes.md",
+    "pde_type": "Damped harmonic oscillator: u'' + 2*zeta*omega*u' + omega^2*u = f(t)",
+    "spatial_dim": null,
+    "techniques": [
+      "Exact sinusoidal ansatz",
+      "A",
+      "For nonlinear oscillators",
+      "Multi-scale time embedding",
+      "Normalization",
+      "Dominant balance",
+      "Fourier features"
+    ],
+    "keywords": [
+      "ansatz",
+      "collocation",
+      "parametric",
+      "periodic",
+      "rar",
+      "spectral bias"
+    ],
+    "known_issues": [
+      "No ansatz for high omega",
+      "Ansatz with wrong frequency",
+      "Phase error",
+      "Van der Pol stiffness",
+      "IVP vs BVP mismatch"
+    ],
+    "node_count": 7,
+    "total_tokens": 568,
+    "indexed_at": "2026-08-07T20:56:19.224598+00:00"
+  },
+  {
+    "doc_id": "inverse-problems",
+    "doc_name": "inverse_problems",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/inverse_problems.md",
+    "pde_type": "Goal: identify unknown parameters theta in F(u; theta) = 0 given sparse observations of u.",
+    "spatial_dim": null,
+    "techniques": [
+      "Sensitivity analysis",
+      "Initialization",
+      "Alternating optimization",
+      "Bayesian PINN",
+      "Ensemble-based UQ",
+      "Regularization for function-valued theta",
+      "Data normalization",
+      "Hessian analysis",
+      "Tikhonov regularization"
+    ],
+    "keywords": [
+      "burgers",
+      "collocation",
+      "heat",
+      "helmholtz",
+      "inverse"
+    ],
+    "known_issues": [
+      "Non-identifiability",
+      "Local minima in theta",
+      "Data overfitting",
+      "Physics stiffness at wrong theta",
+      "Regularization bias"
+    ],
+    "node_count": 7,
+    "total_tokens": 559,
+    "indexed_at": "2026-08-07T20:56:19.226186+00:00"
+  },
+  {
+    "doc_id": "korteweg-de-vries",
+    "doc_name": "korteweg_de_vries",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/korteweg_de_vries.md",
+    "pde_type": "Nonlinear dispersive PDE: u_t + 6*u*u_x + u_xxx = 0",
+    "spatial_dim": null,
+    "techniques": [
+      "Conservation law auxiliary losses",
+      "Dense IC sampling near soliton peak",
+      "Exact IC",
+      "Periodic BC",
+      "Time-marching for long-time integration",
+      "Gradient clipping",
+      "For two-soliton"
+    ],
+    "keywords": [
+      "collocation",
+      "inverse",
+      "kdv",
+      "periodic",
+      "wave"
+    ],
+    "known_issues": [
+      "Third-order derivative",
+      "Soliton drift",
+      "Periodic BC for two solitons",
+      "Phase shift",
+      "Conservation law violation",
+      "Long-time integration (t > 5)"
+    ],
+    "node_count": 7,
+    "total_tokens": 507,
+    "indexed_at": "2026-08-07T20:56:19.227772+00:00"
+  },
+  {
+    "doc_id": "loss-weighting",
+    "doc_name": "loss_weighting",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/loss_weighting.md",
+    "pde_type": "Not a PDE — a training methodology concern affecting all multi-loss PINN formulations.",
+    "spatial_dim": null,
+    "techniques": [
+      "NTK-based adaptive weighting",
+      "GradNorm",
+      "Soft-Adapt",
+      "Relative loss monitoring",
+      "Manual tuning heuristic",
+      "Log-space lambda optimization",
+      "Our AdaptiveLossWeighter"
+    ],
+    "keywords": [
+      "loss weighting"
+    ],
+    "known_issues": [
+      "Over-weighting IC",
+      "Under-weighting BC",
+      "Silent gradient starvation",
+      "Lambda oscillation",
+      "Conflicting objectives"
+    ],
+    "node_count": 7,
+    "total_tokens": 509,
+    "indexed_at": "2026-08-07T20:56:19.229339+00:00"
+  },
+  {
+    "doc_id": "navier-stokes-2d",
+    "doc_name": "navier_stokes_2d",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/navier_stokes_2d.md",
+    "pde_type": "Incompressible 2D NS: u_t + u*u_x + v*u_y = -p_x + nu*(u_xx+u_yy)",
+    "spatial_dim": null,
+    "techniques": [
+      "Streamfunction formulation",
+      "Vorticity-streamfunction",
+      "Pressure gauge",
+      "Adaptive sampling near walls",
+      "For inverse NS",
+      "Domain decomposition for complex geometries; interface conditions via XPINNs",
+      "Physics-informed PointNet for irregular geometries"
+    ],
+    "keywords": [
+      "collocation",
+      "heat",
+      "inverse",
+      "navier-stokes",
+      "poisson"
+    ],
+    "known_issues": [
+      "Pressure non-uniqueness",
+      "Continuity soft constraint",
+      "High Reynolds number",
+      "Pressure-velocity decoupling",
+      "Stagnation point singularity"
+    ],
+    "node_count": 7,
+    "total_tokens": 441,
+    "indexed_at": "2026-08-07T20:56:19.233871+00:00"
+  },
+  {
+    "doc_id": "parametric-pinns",
+    "doc_name": "parametric_pinns",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/parametric_pinns.md",
+    "pde_type": "Family of PDEs parameterized by mu: F(u; mu) = 0 in Omega, mu in parameter space P.",
+    "spatial_dim": null,
+    "techniques": [
+      "Log-space parameter embedding",
+      "FiLM conditioning",
+      "Curriculum over mu",
+      "Deep ensembles for UQ",
+      "Parameter-to-solution map",
+      "Active learning over parameters",
+      "Transfer learning"
+    ],
+    "keywords": [
+      "burgers",
+      "collocation",
+      "curriculum",
+      "navier-stokes",
+      "parametric",
+      "rar"
+    ],
+    "known_issues": [
+      "Parameter extrapolation",
+      "Competing modes",
+      "Capacity bottleneck",
+      "Unbalanced parameter sampling",
+      "Gradient conflict"
+    ],
+    "node_count": 7,
+    "total_tokens": 529,
+    "indexed_at": "2026-08-07T20:56:19.235551+00:00"
+  },
+  {
+    "doc_id": "periodic-boundary-conditions",
+    "doc_name": "periodic_boundary_conditions",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/periodic_boundary_conditions.md",
+    "pde_type": "Applies to any PDE on a periodic domain: u(x + L, t) = u(x, t) for all x, t.",
+    "spatial_dim": null,
+    "techniques": [
+      "Fourier embedding for periodic BCs",
+      "Verify periodicity during evaluation",
+      "Soft BC diagnostic",
+      "For 2D periodic",
+      "Anti-periodic",
+      "Data augmentation",
+      "Conservation law check"
+    ],
+    "keywords": [
+      "high frequency",
+      "kdv",
+      "periodic",
+      "rar",
+      "schrodinger",
+      "spectral bias",
+      "wave"
+    ],
+    "known_issues": [
+      "Derivative mismatch",
+      "Under-weighted soft BC",
+      "High-frequency periodic solution",
+      "Wrong period",
+      "Spatial derivative through embedding"
+    ],
+    "node_count": 7,
+    "total_tokens": 555,
+    "indexed_at": "2026-08-07T20:56:19.237487+00:00"
+  },
+  {
+    "doc_id": "poisson-equation",
+    "doc_name": "poisson_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/poisson_equation.md",
+    "pde_type": "Elliptic PDE: -laplacian(u) = f(x) in Omega, u = g on boundary",
+    "spatial_dim": null,
+    "techniques": [
+      "Baseline benchmark",
+      "Hard BC ansatz",
+      "LHS sampling",
+      "Weak form",
+      "For singular corners",
+      "For high-contrast",
+      "L-BFGS as final optimizer"
+    ],
+    "keywords": [
+      "ansatz",
+      "collocation",
+      "heat",
+      "poisson"
+    ],
+    "known_issues": [
+      "Almost none for smooth f and regular geometry — this problem \"just works\"",
+      "Discontinuous f or a(x)",
+      "Domain with re-entrant corners (L-shape, crack)",
+      "High-contrast coefficient",
+      "Very irregular domain"
+    ],
+    "node_count": 7,
+    "total_tokens": 457,
+    "indexed_at": "2026-08-07T20:56:19.239038+00:00"
+  },
+  {
+    "doc_id": "schrodinger-equation",
+    "doc_name": "schrodinger_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/schrodinger_equation.md",
+    "pde_type": "Complex-valued PDE: i*u_t + 0.5*u_xx + |u|^2 * u = 0 (nonlinear Schrodinger, NLS)",
+    "spatial_dim": null,
+    "techniques": [
+      "Real/imaginary decomposition",
+      "Conservation law loss",
+      "Periodic BC hard constraint",
+      "IC",
+      "Gradient clipping",
+      "Importance sampling near soliton peak"
+    ],
+    "keywords": [
+      "ansatz",
+      "collocation",
+      "heat",
+      "periodic",
+      "schrodinger",
+      "wave"
+    ],
+    "known_issues": [
+      "Phase error accumulation",
+      "Periodic BC violation",
+      "Breather solutions",
+      "Conservation law drift",
+      "Complex-valued network (native)"
+    ],
+    "node_count": 7,
+    "total_tokens": 424,
+    "indexed_at": "2026-08-07T20:56:19.240408+00:00"
+  },
+  {
+    "doc_id": "spectral-bias",
+    "doc_name": "spectral_bias",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/spectral_bias.md",
+    "pde_type": "Not a PDE — a fundamental property of neural network training dynamics.",
+    "spatial_dim": null,
+    "techniques": [
+      "Fourier feature embedding",
+      "For Helmholtz k=10",
+      "For Burgers shock",
+      "NTK monitoring",
+      "Frequency sweep",
+      "Modified MLP",
+      "Spectral normalization of weights",
+      "Input gradient monitoring"
+    ],
+    "keywords": [
+      "burgers",
+      "helmholtz",
+      "high frequency",
+      "periodic",
+      "spectral bias"
+    ],
+    "known_issues": [
+      "Silent failure",
+      "Diagnostic",
+      "Fourier feature sigma too small",
+      "SIREN divergence",
+      "Frequency aliasing"
+    ],
+    "node_count": 7,
+    "total_tokens": 521,
+    "indexed_at": "2026-08-07T20:56:19.241854+00:00"
+  },
+  {
+    "doc_id": "training-stability",
+    "doc_name": "training_stability",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/training_stability.md",
+    "pde_type": "Not a PDE — a collection of diagnostics and remedies for unstable PINN training.",
+    "spatial_dim": null,
+    "techniques": [
+      "Gradient clipping",
+      "NaN detection",
+      "Learning rate finder",
+      "Warmup",
+      "Loss normalization",
+      "Checkpoint saving",
+      "Float64 for L-BFGS",
+      "Stochastic weight averaging",
+      "Early stopping"
+    ],
+    "keywords": [
+      "collocation",
+      "kdv",
+      "rar",
+      "training stability"
+    ],
+    "known_issues": [
+      "NaN propagation",
+      "Premature L-BFGS",
+      "Oscillating loss",
+      "Loss plateaus at high value",
+      "Gradient norm explosion",
+      "Memory overflow"
+    ],
+    "node_count": 7,
+    "total_tokens": 519,
+    "indexed_at": "2026-08-07T20:56:19.243312+00:00"
+  },
+  {
+    "doc_id": "wave-equation",
+    "doc_name": "wave_equation",
+    "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/wave_equation.md",
+    "pde_type": "Hyperbolic PDE: u_tt = c^2 * u_xx (1D) or u_tt = c^2 * laplacian(u) (nD)",
+    "spatial_dim": null,
+    "techniques": [
+      "Causal training",
+      "Fourier feature embedding",
+      "SIREN",
+      "Separate loss terms for u and u_t ICs with independent weights; tune lambda_u_t = 10-100",
+      "Time-marching",
+      "Domain decomposition"
+    ],
+    "keywords": [
+      "collocation",
+      "heat",
+      "periodic",
+      "spectral bias",
+      "wave"
+    ],
+    "known_issues": [
+      "Spectral bias",
+      "IC velocity violation",
+      "Causality violation",
+      "Resonance instability",
+      "Reflection artifacts at boundaries"
+    ],
+    "node_count": 7,
+    "total_tokens": 434,
+    "indexed_at": "2026-08-07T20:56:19.244655+00:00"
+  }
+]
