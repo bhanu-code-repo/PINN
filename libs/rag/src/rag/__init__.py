@@ -17,10 +17,20 @@ Quick start::
 
     from llm_provider import LLMClient
     results = await retrieve(store, "How to handle shock waves?", LLMClient())
+
+File ingestion with deduplication::
+
+    from rag import ingest_file, KnowledgeStore, FileRegistry
+
+    store = KnowledgeStore("./kb")
+    registry = FileRegistry("./kb/registry.db")
+    result = ingest_file("paper.pdf", store=store, registry=registry)
 """
 
 from .indexing import MarkdownIndexer
+from .ingest import IngestResult, ingest_file
 from .models import DocumentMetadata, DocumentTree, RetrievalResult, TreeNode
+from .registry import FileRecord, FileRegistry
 from .retrieve import retrieve
 from .search import SearchEngine
 from .store import KnowledgeStore
@@ -28,10 +38,14 @@ from .store import KnowledgeStore
 __all__ = [
     "DocumentMetadata",
     "DocumentTree",
+    "FileRecord",
+    "FileRegistry",
+    "IngestResult",
     "KnowledgeStore",
     "MarkdownIndexer",
     "RetrievalResult",
     "SearchEngine",
     "TreeNode",
+    "ingest_file",
     "retrieve",
 ]

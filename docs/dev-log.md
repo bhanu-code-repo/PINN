@@ -552,9 +552,39 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 
 ---
 
+### Phase 27 — Hybrid PDF, SQLite registry, and RAG notebooks
+**Branch:** `feature/rag-hybrid-pdf-registry`
+
+- **Hybrid PDF converter** (`libs/rag/src/rag/indexing/pdf.py`):
+  - `classify_pages()` — per-page complexity detection (image area ratio,
+    text token count). Simple pages (>30 tokens, <40% images) use pymupdf4llm;
+    complex pages use LLM vision.
+  - `hybrid_pdf_to_markdown()` — async 2-tier conversion with semaphore(3)
+    rate limiting. Falls back to pymupdf4llm if no LLM client provided.
+  - `get_page_count()`, `_page_to_base64_image()` for PDF utilities.
+- **SQLite file registry** (`libs/rag/src/rag/registry.py`):
+  - `FileRegistry` — SHA-256 dedup, ingestion tracking, conversion metadata.
+  - Schema: file_hash (PK), file_name, file_path, file_size, page_count,
+    doc_id, converter, llm_pages, timestamps. Indexed on doc_id and path.
+  - CRUD: `register()`, `lookup()`, `lookup_by_path()`, `is_indexed()`,
+    `unregister()`, `list_all()`, `count()`.
+  - Context manager support. Easy PostgreSQL migration (same SQL).
+- **Ingestion pipeline** (`libs/rag/src/rag/ingest.py`):
+  - `ingest_file()` — single entry point: dedup check → index → store → register.
+  - Returns `IngestResult` with status (indexed/skipped/error), hash, doc_id.
+  - Supports metadata enrichment, custom doc_id, force re-index.
+- **MarkdownIndexer** updated: `hybrid_pdf=True` flag, async `_read_content()`.
+- 24 new tests: registry (11), ingest (9), PDF hybrid (4).
+- **Notebook 13** — RAG-enhanced recommendations: knowledge base search,
+  side-by-side comparison with/without RAG context, query building.
+- **Notebook 14** — RAG pipeline deep dive: file ingestion, dedup demo,
+  hybrid PDF classification, SQLite registry walkthrough.
+- 282 total fast tests, all passing.
+
+---
+
 ## Roadmap / Deferred
 
-- **Notebook 13** — RAG-enhanced recommendations walkthrough.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.

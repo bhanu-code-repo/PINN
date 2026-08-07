@@ -13,7 +13,7 @@ from loguru import logger
 
 from ..models.schemas import DocumentTree, TreeNode
 from . import markdown
-from .pdf import pdf_to_markdown
+from .pdf import get_page_count, hybrid_pdf_to_markdown, pdf_to_markdown
 
 
 class MarkdownIndexer:
@@ -29,6 +29,9 @@ class MarkdownIndexer:
         summary instead of calling the LLM.
     enable_thinning : bool
         Whether to apply tree thinning.
+    hybrid_pdf : bool
+        Whether to use hybrid PDF conversion (pymupdf4llm + LLM vision
+        for complex pages). If False, uses pymupdf4llm for all pages.
     """
 
     def __init__(
@@ -37,10 +40,12 @@ class MarkdownIndexer:
         min_node_tokens: int = 50,
         summary_token_threshold: int = 200,
         enable_thinning: bool = True,
+        hybrid_pdf: bool = False,
     ) -> None:
         self.min_node_tokens = min_node_tokens
         self.summary_token_threshold = summary_token_threshold
         self.enable_thinning = enable_thinning
+        self.hybrid_pdf = hybrid_pdf
 
     # -- Public API ---------------------------------------------------------
 
@@ -58,10 +63,10 @@ class MarkdownIndexer:
             Path to a ``.md`` or ``.pdf`` file.
         llm_client : LLMClient or None
             If provided, generates per-node summaries via LLM.
-            If ``None``, summaries are left empty.
+            Also used for hybrid PDF conversion of complex pages.
         """
         path = Path(path)
-        content = self._read_content(path)
+        content, llm_pages = await self._read_content(path, llm_client)
 
         # Parse markdown into flat node list
         node_list, lines = markdown.extract_headers(content)
@@ -86,11 +91,18 @@ class MarkdownIndexer:
         if llm_client is not None:
             await self._generate_summaries(root_nodes, llm_client)
 
-        return DocumentTree(
+        tree = DocumentTree(
             doc_name=path.stem,
             source_path=str(path),
             root_nodes=root_nodes,
         )
+
+        # Attach conversion metadata for PDF files
+        if path.suffix.lower() == ".pdf":
+            tree._llm_pages = llm_pages  # type: ignore[attr-defined]
+            tree._page_count = get_page_count(path)  # type: ignore[attr-defined]
+
+        return tree
 
     def index_file_sync(
         self,
@@ -103,15 +115,24 @@ class MarkdownIndexer:
 
     # -- Content reading ----------------------------------------------------
 
-    @staticmethod
-    def _read_content(path: Path) -> str:
-        """Read file content, converting PDF to markdown if needed."""
+    async def _read_content(
+        self, path: Path, llm_client: object | None
+    ) -> tuple[str, list[int]]:
+        """Read file content, converting PDF to markdown if needed.
+
+        Returns (content, llm_pages) where llm_pages is a list of
+        page numbers that used LLM conversion (empty for non-PDF files).
+        """
         suffix = path.suffix.lower()
 
         if suffix == ".pdf":
-            return pdf_to_markdown(path)
+            if self.hybrid_pdf:
+                return await hybrid_pdf_to_markdown(
+                    path, llm_client=llm_client
+                )
+            return pdf_to_markdown(path), []
         elif suffix in (".md", ".markdown", ".txt"):
-            return path.read_text(encoding="utf-8")
+            return path.read_text(encoding="utf-8"), []
         else:
             msg = f"Unsupported file format: {suffix}. Use .md, .txt, or .pdf"
             raise ValueError(msg)

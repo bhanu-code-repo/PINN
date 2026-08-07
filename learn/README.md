@@ -37,8 +37,10 @@ libraries, or prior PINN knowledge.
 | **10** | **[Lang-PINN Intro](10_lang_pinn_intro.ipynb)** | **LLM-guided PINNs: 3 agents, 3 modes, PDESpec, SymPy verification** | **30 min** |
 | **11** | **[Hybrid Mode Deep Dive](11_hybrid_mode_deep_dive.ipynb)** | **Feedback loop, quality scoring, adaptive weights, health monitoring** | **30 min** |
 | **12** | **[Bring Your Own PDE](12_bring_your_own_pde.ipynb)** | **End-to-end workflow: describe → verify → generate → customize → train** | **40 min** |
+| **13** | **[RAG-Enhanced Recommendations](13_rag_enhanced_recommendations.ipynb)** | **Knowledge base search, literature-backed architecture recommendations** | **30 min** |
+| **14** | **[RAG Pipeline Deep Dive](14_rag_pipeline_deep_dive.ipynb)** | **File ingestion, SHA-256 dedup, hybrid PDF conversion, SQLite registry** | **35 min** |
 
-**Total: ~7 hours of hands-on work.**
+**Total: ~8 hours of hands-on work.**
 
 ## How to Use
 
@@ -56,6 +58,7 @@ Work through the notebooks in order. Each one builds on the previous:
 - **08** gives you the honest picture for real-world decisions
 - **09** is an advanced deep-dive into inverse Navier-Stokes
 - **10–12** introduce Lang-PINN: LLM-guided PINN construction and the full workflow
+- **13–14** cover RAG: knowledge base search, file ingestion, hybrid PDF conversion
 
 Every notebook is self-contained (runs independently) but references earlier
 concepts. Code cells are meant to be executed — the outputs tell the story.
