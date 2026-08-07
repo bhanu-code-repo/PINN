@@ -1,0 +1,87 @@
+{
+  "doc_name": "poisson_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/poisson_equation.md",
+  "pde_type": "Elliptic PDE: -laplacian(u) = f(x) in Omega, u = g on boundary",
+  "spatial_dim": null,
+  "known_issues": [
+    "Almost none for smooth f and regular geometry — this problem \"just works\"",
+    "Discontinuous f or a(x)",
+    "Domain with re-entrant corners (L-shape, crack)",
+    "High-contrast coefficient",
+    "Very irregular domain"
+  ],
+  "techniques": [
+    "Baseline benchmark",
+    "Hard BC ansatz",
+    "LHS sampling",
+    "Weak form",
+    "For singular corners",
+    "For high-contrast",
+    "L-BFGS as final optimizer"
+  ],
+  "keywords": [
+    "ansatz",
+    "collocation",
+    "heat",
+    "poisson"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Poisson Equation",
+      "text": "# Poisson Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nElliptic PDE: -laplacian(u) = f(x) in Omega, u = g on boundary\nSpecial case: Laplace equation (f=0). Steady-state heat/diffusion.\nPrototype for elliptic problems: no time dependence, pure boundary value problem.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Easiest class of PDEs for PINNs — the baseline benchmark\n- Well-conditioned problem: solution is smooth (as smooth as f and the domain)\n- Vanilla PINN achieves L2 error < 1e-5 on unit square with 5,000 collocation points\n- Maximum principle: solution is bounded by boundary data — constrains the solution space\n- Galerkin PINN (weak form) often outperforms strong-form PINN for Poisson\n- High-contrast coefficients: -div(a(x)*grad(u)) = f with discontinuous a is significantly harder\n- For Poisson on the unit square with f=1 and zero Dirichlet BCs: trivially solved in minutes\n- In irregular geometry: boundary integral formulation can outperform domain collocation",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 3-4 hidden layers x 32-64 neurons — smaller networks are fine\n- Activation: tanh (standard)\n- Collocation points: 2,000-5,000 interior; 500 boundary\n- Latin hypercube sampling (LHS) preferred over uniform for interior points\n- Hard BC ansatz: u(x) = phi(x) * NN(x) where phi(x) is distance to boundary; exactly enforces u=0\n- This is the ideal testbed for new ansatz methods — ground truth is cheaply available",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Almost none for smooth f and regular geometry — this problem \"just works\"\n- Discontinuous f or a(x): gradient of solution has jump; network cannot represent discontinuous derivative\n- Domain with re-entrant corners (L-shape, crack): solution has singularity u ~ r^(pi/angle); convergence is slow\n- High-contrast coefficient: if a_max/a_min > 100, residual gradient is dominated by high-a region\n- Very irregular domain: boundary representation must be accurate; discretization artifacts if boundary poorly sampled",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Baseline benchmark: use this to validate any new technique before applying to harder PDEs\n- Hard BC ansatz: u = distance_to_boundary * NN; eliminates BC loss term entirely\n- LHS sampling: always prefer to uniform for interior collocation in 2D+\n- Weak form (Galerkin PINN): integrate by parts to reduce derivative order; improves accuracy\n- For singular corners: use graded mesh / weighted sampling near singularity: rho(x) ~ |x - x_corner|^(-alpha)\n- For high-contrast: weight residual by 1/a(x) to equalize loss contributions\n- L-BFGS as final optimizer: converges to machine precision on Poisson problems",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Lagaris, Likas, Fotiadis (1998) — Artificial neural networks for solving ODE/PDE boundary value problems\n- Berg, Nystrom (2018) — A unified deep artificial neural network approach to PDE in complex geometries\n- Kharazmi, Zhang, Karniadakis (2019) — Variational physics-informed neural networks for solving partial differential equations\n- Sukumar, Srivastava (2022) — Exact imposition of boundary conditions with distance functions in physics-informed deep neural networks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

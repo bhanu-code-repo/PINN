@@ -1,0 +1,88 @@
+{
+  "doc_name": "schrodinger_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/schrodinger_equation.md",
+  "pde_type": "Complex-valued PDE: i*u_t + 0.5*u_xx + |u|^2 * u = 0 (nonlinear Schrodinger, NLS)",
+  "spatial_dim": null,
+  "known_issues": [
+    "Phase error accumulation",
+    "Periodic BC violation",
+    "Breather solutions",
+    "Conservation law drift",
+    "Complex-valued network (native)"
+  ],
+  "techniques": [
+    "Real/imaginary decomposition",
+    "Conservation law loss",
+    "Periodic BC hard constraint",
+    "IC",
+    "Gradient clipping",
+    "Importance sampling near soliton peak"
+  ],
+  "keywords": [
+    "ansatz",
+    "collocation",
+    "heat",
+    "periodic",
+    "schrodinger",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Schrodinger Equation",
+      "text": "# Schrodinger Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nComplex-valued PDE: i*u_t + 0.5*u_xx + |u|^2 * u = 0 (nonlinear Schrodinger, NLS)\nOr linear: i*hbar*psi_t = -hbar^2/(2m) * psi_xx + V(x)*psi\nSolution is complex-valued; standard real-valued NNs require decomposition.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Must decompose: u = v + iw, then solve coupled real system for (v, w)\n- Periodic boundary conditions are standard (soliton/breather solutions on periodic domain)\n- NLS supports soliton and breather solutions — these are well-captured by PINNs\n- Raissi et al. (2019) demonstrated PINN on NLS with periodic BCs, L2 error ~1e-3\n- Conservation laws (mass, momentum, energy) provide valuable auxiliary loss terms\n- Phase-sensitive: small errors in phase accumulate over time — more critical than amplitude error\n- Linear Schrodinger with smooth V(x): relatively easy, similar to heat equation\n- NLS with strong nonlinearity (|u|^2 term dominates): harder, needs more collocation near peaks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 5 hidden layers x 100 neurons (Raissi benchmark)\n- Activation: tanh\n- Output: 2 neurons [v(x,t), w(x,t)] representing real and imaginary parts\n- Collocation points: 20,000 interior (x in [-5,5], t in [0,pi/2]) for standard soliton benchmark\n- Boundary points: 50 per time snapshot for periodic BC enforcement\n- IC points: 50 spatial points for u(x,0)\n- Periodic BC: enforce v(-L,t) = v(L,t) and v_x(-L,t) = v_x(L,t), same for w",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Phase error accumulation: network amplitude may be correct but phase drifts — undetectable from |u| alone\n- Periodic BC violation: soft enforcement often insufficient; consider hard ansatz with Fourier basis\n- Breather solutions: near-periodic in time with slow modulation — network confuses periods\n- Conservation law drift: mass integral int(|u|^2 dx) should be constant; soft constraint helps\n- Complex-valued network (native): if using complex weights, initialization and optimization are non-standard",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Real/imaginary decomposition: always split into two real networks or two output heads\n- Conservation law loss: add L_mass = ||int_x(v^2+w^2)dx - M_0||^2 as auxiliary term\n- Periodic BC hard constraint: use Fourier series ansatz u(x,t) = sum_k a_k(t)*exp(ikx)\n- IC: exact soliton initial condition u(x,0) = 2*sech(x) for NLS benchmark\n- Gradient clipping: max_norm=1.0 prevents explosion from |u|^2 nonlinearity\n- Importance sampling near soliton peak (x near 0) helps accuracy",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP\n- Pu, Li, Chen (2021) — Soliton, breather and rogue wave solutions for solving the nonlinear Schrodinger equation using a deep learning method with time-stepping\n- Jagtap, Kawaguchi, Karniadakis (2020) — Adaptive activation functions accelerate convergence in deep and physics-informed neural networks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

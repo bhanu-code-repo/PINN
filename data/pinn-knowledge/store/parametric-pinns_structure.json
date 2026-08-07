@@ -1,0 +1,89 @@
+{
+  "doc_name": "parametric_pinns",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/parametric_pinns.md",
+  "pde_type": "Family of PDEs parameterized by mu: F(u; mu) = 0 in Omega, mu in parameter space P.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Parameter extrapolation",
+    "Competing modes",
+    "Capacity bottleneck",
+    "Unbalanced parameter sampling",
+    "Gradient conflict"
+  ],
+  "techniques": [
+    "Log-space parameter embedding",
+    "FiLM conditioning",
+    "Curriculum over mu",
+    "Deep ensembles for UQ",
+    "Parameter-to-solution map",
+    "Active learning over parameters",
+    "Transfer learning"
+  ],
+  "keywords": [
+    "burgers",
+    "collocation",
+    "curriculum",
+    "navier-stokes",
+    "parametric",
+    "rar"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Parametric PINNs",
+      "text": "# Parametric PINNs",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nFamily of PDEs parameterized by mu: F(u; mu) = 0 in Omega, mu in parameter space P.\nExample: Burgers with nu in [0.001, 0.1], or NS with Re in [100, 1000].\nGoal: single network u(x, t; mu) that solves for all mu simultaneously.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Standard PINN solves one instance at a time; parametric PINN solves the entire family\n- mu appended as additional network input: NN(x, t, mu) — simplest approach, often surprisingly effective\n- Accuracy degrades as parameter range widens; interpolation works, extrapolation rarely does\n- For smooth parameter dependence: parametric PINN achieves near-single-instance accuracy\n- For parameter-dependent features (shock at different x for different nu): harder, needs more capacity\n- Neural operators (DeepONet, FNO) are an alternative — learn solution operator rather than single instance\n- Uncertainty quantification: ensemble of parametric PINNs trained with different parameter subsets\n- Inference speedup: once trained, evaluation is instantaneous for any mu in training range",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Input: [x, t, mu] concatenated — mu can be scalar or vector if multiple parameters\n- Layers: increase by 1-2 layers vs single-instance baseline (more capacity needed)\n- Typically: 6-8 layers x 64-128 neurons for 1D PDE with 1 parameter\n- Parameter embedding: if mu has known structure (e.g., log-uniform), embed as log(mu) or (mu - mu_mean)/mu_std\n- Collocation: sample (x, t, mu) jointly — use LHS over the full product space\n- For K parameters: N_total = N_base * K^0.5 (sublinear growth works for smooth parameter dependence)\n- Conditional architecture: use mu to modulate network via FiLM layers (gamma, beta per layer)",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Parameter extrapolation: never trust predictions outside training parameter range\n- Competing modes: for Burgers, shock location depends on nu; network must learn nu-conditional location\n- Capacity bottleneck: single small network cannot represent all parameter instances; increase size\n- Unbalanced parameter sampling: if uniform in mu but solution varies more for small mu, use log-uniform\n- Gradient conflict: gradients from different mu values can point in opposing directions — GradNorm helps",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Log-space parameter embedding: for scale parameters (nu, Re, k), always embed as log(mu)\n- FiLM conditioning: gamma(mu)*NN_hidden + beta(mu) where gamma, beta are small MLPs on mu\n  This lets mu modulate each hidden layer independently — significantly better than concatenation\n- Curriculum over mu: train easy (large nu) first, progressively add harder (small nu)\n- Deep ensembles for UQ: train 5-10 parametric PINNs with different init; variance gives uncertainty\n- Parameter-to-solution map (P2S): post-train a cheap surrogate that maps mu to key solution statistics\n- Active learning over parameters: identify mu values where ensemble variance is high, add training instances\n- Transfer learning: warm-start hard-mu training from easy-mu weights",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP (parametric setup)\n- Sun, Liu, Wang, Sun (2020) — Surrogate modeling for fluid flows using physics-informed neural networks\n- Mao, Jagtap, Karniadakis (2020) — Physics-informed neural networks for high-speed flows\n- Psaros, Meng, Zou, Guo, Karniadakis (2023) — Uncertainty quantification in scientific machine learning\n- De Ryck, Jagtap, Mishra (2023) — Error estimates for physics-informed neural networks approximating the Navier-Stokes equations",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

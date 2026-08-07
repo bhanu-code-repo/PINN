@@ -504,11 +504,41 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 
 ---
 
+## 2026-08-06
+
+### Phase 25 — PINN knowledge base + RAG integration
+**Branch:** `feature/pinn-knowledge-base`
+
+- **20 PINN knowledge entries** in `data/pinn-knowledge/sources/`:
+  burgers, heat, wave, Schrödinger, Navier-Stokes 2D, advection, Allen-Cahn,
+  Helmholtz, KdV, Poisson, spectral bias, loss weighting, Ansatz methods,
+  collocation strategies, training stability, parametric PINNs, inverse problems,
+  high-frequency ODEs, periodic BCs, curriculum training.
+  Each entry follows a structured format: Equation Type, Key Findings,
+  Recommended Architecture, Known Failure Modes, Techniques, References.
+- **Build script** (`data/pinn-knowledge/build_index.py`): indexes all source
+  markdown files into a `KnowledgeStore` with PDE-specific metadata extraction
+  (regex-based: pde_type, techniques, known_issues, keywords). Pre-built store
+  in `data/pinn-knowledge/store/` (20 documents, 140 nodes).
+- **Knowledge retrieval module** (`libs/lang-pinn/src/lang_pinn/agents/knowledge.py`):
+  loads pre-built store, BM25 search (no LLM cost), builds search queries from
+  PDESpec features, returns formatted context with metadata headers.
+- **PINN Agent integration**: both rule-based and LLM modes now augmented with
+  retrieved knowledge context. Rule-based: context attached to `ArchitectureRec.knowledge_context`.
+  LLM mode: context injected into prompt as "Relevant Literature Context".
+- `ArchitectureRec` gains `knowledge_context: str` field for retrieved literature.
+- `lang-pinn` now depends on `rag` workspace library.
+- 12 new tests in `test_knowledge.py`: pre-built store loading, BM25 search
+  (burgers, heat, no-match), agent with/without store, fixture-based mini store,
+  query building with feature flags.
+- 241 total fast tests, all passing.
+
+---
+
 ## Roadmap / Deferred
 
-- **PINN knowledge base** — curate PINN papers, integrate RAG into PINN Agent's
-  `recommend()` for literature-aware architecture recommendations.
 - **Knowledge Base admin UI** — dashboard page for browsing/managing indexed papers.
+- **Notebook 13** — RAG-enhanced recommendations walkthrough.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.

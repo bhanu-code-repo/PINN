@@ -1,0 +1,84 @@
+{
+  "doc_name": "loss_weighting",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/loss_weighting.md",
+  "pde_type": "Not a PDE — a training methodology concern affecting all multi-loss PINN formulations.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Over-weighting IC",
+    "Under-weighting BC",
+    "Silent gradient starvation",
+    "Lambda oscillation",
+    "Conflicting objectives"
+  ],
+  "techniques": [
+    "NTK-based adaptive weighting",
+    "GradNorm",
+    "Soft-Adapt",
+    "Relative loss monitoring",
+    "Manual tuning heuristic",
+    "Log-space lambda optimization",
+    "Our AdaptiveLossWeighter"
+  ],
+  "keywords": [
+    "loss weighting"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Loss Weighting and Gradient Pathology",
+      "text": "# Loss Weighting and Gradient Pathology",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNot a PDE — a training methodology concern affecting all multi-loss PINN formulations.\nTotal loss: L = lambda_r * L_residual + lambda_bc * L_bc + lambda_ic * L_ic + ...",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Gradient pathology (Wang et al. 2021): different loss terms have different gradient magnitudes; optimizer is dominated by the largest\n- If lambda_bc << lambda_r in terms of gradient norms, BCs are effectively ignored\n- Fixed lambda values almost always suboptimal; the optimal ratio changes during training\n- NTK analysis shows: gradient of each loss component has different Jacobian norm\n- Empirical rule: lambda_bc/lambda_r = max(|grad L_r|) / max(|grad L_bc|) should be ~1 for balanced training\n- Adaptive NTK weighting: compute this ratio every K epochs (K=1000 is common) and update lambdas\n- GradNorm (Chen et al. 2018): normalize gradient magnitudes across tasks — effective for PINN\n- IC weights often need to be 10-1000x physics residual weight; this is normal and expected\n- Soft-Adapt (Heydari et al. 2019): weight by rate of loss decrease; fast-decreasing terms get lower weight",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nNo single architecture change, but loss monitoring is critical:\n- Log each loss component separately every epoch (not just total loss)\n- Log gradient norms for each component\n- Use AdaptiveLossWeighter if available in the codebase\n- Typical starting weights: lambda_r=1, lambda_bc=10, lambda_ic=100\n- Adjust based on monitoring: if L_bc stagnates while L_r decreases, increase lambda_bc",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Over-weighting IC: lambda_ic too high causes network to perfectly fit IC but ignore PDE — overfitting\n- Under-weighting BC: solution drifts away from boundary; problem looks solved but BCs are violated\n- Silent gradient starvation: one loss term drives gradients entirely, others receive near-zero updates\n- Lambda oscillation: adaptive weights oscillate if update rate is too high; use exponential moving average\n- Conflicting objectives: for some stiff PDEs, IC and residual loss are inherently in tension; weights alone cannot fix this",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- NTK-based adaptive weighting (Wang et al. 2021):\n  lambda_k = <max gradient norm across all losses> / <gradient norm of loss k>\n  Update every 1000 epochs; use EMA with rate 0.9 to smooth\n- GradNorm: maintain a target gradient norm ratio; backprop through the norms to update lambdas\n- Soft-Adapt: lambda_k proportional to 1/|dL_k/dt| — rewards slowly-decreasing terms\n- Relative loss monitoring: track L_k(t)/L_k(0) for each component; all should decrease similarly\n- Manual tuning heuristic: first train with only residual loss, then add BC/IC losses progressively\n- Log-space lambda optimization: keep lambdas as exp(log_lambda) to ensure positivity during updates\n- Our AdaptiveLossWeighter (in libs/pinn_core): implements NTK-based scheme with EMA smoothing",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Wang, Teng, Perdikaris (2021) — Understanding and mitigating gradient pathology in physics-informed neural networks, SIAM\n- Chen, Badrinarayanan, Lee, Rabinovich (2018) — GradNorm: Gradient normalization for adaptive loss balancing in deep multitask networks, ICML\n- Heydari, Thompson, Mehmood (2019) — Softadapt: Techniques for adaptive loss weighting of neural networks with multi-part loss functions\n- McClenny, Braga-Neto (2023) — Self-adaptive physics-informed neural networks using a soft attention mechanism",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

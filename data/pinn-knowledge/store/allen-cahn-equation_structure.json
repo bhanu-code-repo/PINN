@@ -1,0 +1,89 @@
+{
+  "doc_name": "allen_cahn_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/allen_cahn_equation.md",
+  "pde_type": "Nonlinear reaction-diffusion PDE: u_t = epsilon^2 * u_xx + u - u^3",
+  "spatial_dim": null,
+  "known_issues": [
+    "Interface smearing",
+    "Phase pinning",
+    "Mass non-conservation",
+    "Stiff dynamics",
+    "Periodic BC soft enforcement"
+  ],
+  "techniques": [
+    "Causal training",
+    "RAR",
+    "Interface tracking",
+    "Hard periodic BC",
+    "Conservation loss",
+    "Adaptive epsilon curriculum",
+    "Time-marching with small windows is often more reliable than full space-time solve"
+  ],
+  "keywords": [
+    "allen-cahn",
+    "ansatz",
+    "collocation",
+    "curriculum",
+    "periodic",
+    "rar"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Allen-Cahn Equation",
+      "text": "# Allen-Cahn Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNonlinear reaction-diffusion PDE: u_t = epsilon^2 * u_xx + u - u^3\nModels phase separation; u in [-1, 1] represents two phases. Sharp interface between phases.\nRelated to Cahn-Hilliard (4th order), which is significantly harder.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Sharp interface width scales as epsilon; for epsilon = 0.01, interface is extremely thin\n- Primary challenge: resolving the interface requires very fine collocation in interface region\n- Vanilla PINN fails for epsilon < 0.1: interface region under-sampled, network smooths it out\n- Benchmark: x in [-1,1], t in [0,1], u(x,0) = x^2*cos(pi*x), periodic BCs\n- At epsilon=0.01: standard PINN achieves only ~10% accuracy; causal training + RAR reduces error to ~1%\n- Interface dynamics: phases evolve to minimize surface energy; final state has two flat regions\n- u^3 - u nonlinearity has bistable equilibria at u = +/-1 — network must find both",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 8 hidden layers x 64 neurons\n- Activation: tanh (ReLU cannot represent smooth interface profiles)\n- Collocation points: 25,000 interior minimum; adaptive refinement critical\n- Interface-aware sampling: oversample near |u| < 0.5 region (interface zone)\n- IC points: 512 uniformly spaced in x at t=0\n- Periodic BC: hard enforcement via Fourier ansatz or explicit periodization layer\n- Time collocation: bias toward early times (t < 0.2) where dynamics are fastest",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Interface smearing: network cannot represent sharp transition; learns broad smooth profile\n- Phase pinning: network gets stuck with interface at wrong location; hard to escape this basin\n- Mass non-conservation: int(u dx) should be approximately constant; often violated\n- Stiff dynamics: for small epsilon, time scales are O(epsilon^2) — very stiff system\n- Periodic BC soft enforcement: gradient at boundaries must match; soft constraint often insufficient",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Causal training: essential for this PDE — start from t=0, propagate forward with epsilon-causal weights\n- RAR (Residual-based Adaptive Refinement): query |residual| every 500 epochs, add 1000 points where large\n- Interface tracking: if interface location is approximately known, bias sampling there explicitly\n- Hard periodic BC: u(x,t) = u(-x,t) is NOT the BC; periodic means u(-1,t) = u(1,t), u_x(-1,t) = u_x(1,t)\n- Conservation loss: add L_mass = (mean(u) - mean(u0))^2 to stabilize long-time dynamics\n- Adaptive epsilon curriculum: start with epsilon=0.1 (easy), reduce to epsilon=0.01 (target)\n- Time-marching with small windows is often more reliable than full space-time solve",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Wang, Teng, Perdikaris (2022) — Understanding and mitigating gradient pathology in physics-informed neural networks\n- Wight, Zhao (2021) — Solving Allen-Cahn and Cahn-Hilliard equations using the adaptive physics informed neural networks\n- McClenny, Braga-Neto (2023) — Self-adaptive physics-informed neural networks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

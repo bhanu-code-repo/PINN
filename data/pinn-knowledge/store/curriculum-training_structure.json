@@ -1,0 +1,91 @@
+{
+  "doc_name": "curriculum_training",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/curriculum_training.md",
+  "pde_type": "Not a PDE — a training strategy for time-dependent PDEs where standard full-domain training fails.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Window interface discontinuity",
+    "Error accumulation",
+    "Window width too large",
+    "Window width too small",
+    "Overlap region conflicts"
+  ],
+  "techniques": [
+    "Parameter curriculum",
+    "Domain curriculum",
+    "Noise curriculum",
+    "Resolution curriculum",
+    "Spatial",
+    "Temporal",
+    "IC for each window",
+    "Transfer learning",
+    "Adaptive window width"
+  ],
+  "keywords": [
+    "advection",
+    "allen-cahn",
+    "burgers",
+    "collocation",
+    "curriculum",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Curriculum Training and Time-Marching",
+      "text": "# Curriculum Training and Time-Marching",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nNot a PDE — a training strategy for time-dependent PDEs where standard full-domain training fails.\nMost useful for: hyperbolic PDEs (advection, wave), stiff problems (Allen-Cahn, Van der Pol), long time horizons.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Full space-time training often fails for long time windows due to causality violation\n- Root cause: optimizer satisfies final-time state while violating intermediate dynamics\n- Time-marching: partition [0, T] into windows [t0, t1], [t1, t2], ...; solve each as separate PINN\n- Each window uses solution from previous window as IC — propagates information forward causally\n- Window width: choose so that within each window, the solution is \"simple\" (no major events)\n- For Burgers with nu=0.01: window width ~0.1 is safe; width 1.0 (full domain) often fails\n- Causal training (Wang 2022): soft version of time-marching within a single training run — no domain splitting\n- Curriculum over difficulty: train easy version of problem first, progressively increase difficulty",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\nTime-marching protocol:\n1. Divide [0, T] into K windows: T_k = [k*Delta_t, (k+1)*Delta_t] for k=0,...,K-1\n2. For k=0: train PINN with IC u(x, 0) = u_0(x)\n3. For k>0: evaluate PINN_{k-1} on dense grid at t=(k*Delta_t); use as IC for PINN_k\n4. Each PINN: 5000-20000 epochs; reduce epochs for later windows if solution becomes simpler\n5. Window size Delta_t: aim for solution to vary by < 50% of dynamic range within each window\n6. Overlap: use small overlap region (10% of window) to ensure smooth handoff\n\nCausal training protocol (within single PINN):\n- Divide time into M temporal bins: B_j = [j*dt_bin, (j+1)*dt_bin]\n- Weight w_j = exp(-epsilon * sum_{k<j} L_residual(B_k))\n- Large epsilon: strict causality (must solve early bins before late bins)\n- Small epsilon: weak causality (approximate)\n- Tune epsilon: start with 1.0, increase to 10.0 if temporal causality is still violated",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Window interface discontinuity: if PINN_{k-1} has error at t_k, this error propagates as wrong IC into PINN_k\n- Error accumulation: small errors in each window compound — final window may have large error\n- Window width too large: within-window dynamics too complex; same failure mode as full-domain training\n- Window width too small: too many windows, excessive training time; also, IC interpolation errors compound more\n- Overlap region conflicts: if overlap is large, optimizer sees contradicting constraints at handoff",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\nCurriculum over problem difficulty:\n- Parameter curriculum: train at nu=0.1 (easy), progressively reduce to nu=0.01 (target)\n- Domain curriculum: train on [0, 0.5] first, expand to [0, 1.0]; solution learned early is warm start\n- Noise curriculum: add small noise to IC, reduce noise over training; prevents overfitting to exact IC\n- Resolution curriculum: start with 1000 collocation points, increase to 20000 over training\n\nProgressive domain expansion:\n- Spatial: train on [-1, 0], then extend to [-1, 1] using previous solution as initial guess\n- Temporal: train on [0, 0.1], extend to [0, 0.2] using weights from [0, 0.1] model as init\n\nTime-marching specifics:\n- IC for each window: evaluate previous network at 1000+ points; fit IC with lambda=1000\n- Transfer learning: initialize PINN_k weights from PINN_{k-1} — typically 2-5x fewer training steps\n- Adaptive window width: if window error is large, split window; if small, merge with next",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Wang, Wang, Perdikaris (2022) — Respecting causality is all you need for training physics-informed neural networks\n- Krishnapriyan, Gholami, Zhe, Kirby, Mahoney (2021) — Characterizing possible failure modes in physics-informed neural networks, NeurIPS\n- Mattey, Ghosh (2022) — A novel sequential method to train physics-informed neural networks for Allen-Cahn and Cahn-Hilliard equations\n- Wight, Zhao (2021) — Solving Allen-Cahn and Cahn-Hilliard equations using the adaptive physics informed neural networks\n- Penwarden, Zhe, Narayan, Kirby (2023) — A unified scalable framework for causal sweeping strategies for physics-informed neural networks",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

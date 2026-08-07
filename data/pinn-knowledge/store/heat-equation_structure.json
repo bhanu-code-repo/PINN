@@ -1,0 +1,87 @@
+{
+  "doc_name": "heat_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/heat_equation.md",
+  "pde_type": "Parabolic PDE: u_t = alpha * u_xx (1D) or u_t = alpha * laplacian(u) (nD)",
+  "spatial_dim": null,
+  "known_issues": [
+    "Essentially none for simple geometries — this is the \"works out of the box\" case",
+    "Multi-scale domains with different thermal conductivities",
+    "High-dimensional inputs (d > 5)",
+    "Long time horizons (t >> 1/alpha)",
+    "Oscillatory IC (e.g., u0 = sin(20*pi*x))"
+  ],
+  "techniques": [
+    "Standard Adam optimizer with lr=1e-3 followed by L-BFGS for polishing",
+    "No special techniques needed for standard 1D/2D problems",
+    "For oscillatory IC",
+    "For long time domains",
+    "IC hard constraint"
+  ],
+  "keywords": [
+    "ansatz",
+    "burgers",
+    "collocation",
+    "heat",
+    "poisson",
+    "spectral bias"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Heat Equation (Diffusion)",
+      "text": "# Heat Equation (Diffusion)",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nParabolic PDE: u_t = alpha * u_xx (1D) or u_t = alpha * laplacian(u) (nD)\nLinear, well-posed, strongly regularizing. The canonical \"easy\" PINN benchmark.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Most tractable class for PINNs: parabolic character means smooth solutions and no shocks\n- Vanilla PINN achieves L2 error < 1e-4 with 5000 collocation points for standard setups\n- Diffusivity alpha has minimal impact on difficulty (contrast: Burgers low-nu)\n- 2D heat equation on unit square with Dirichlet BCs: converges in ~10k Adam + 1k L-BFGS steps\n- IC must be enforced strongly; soft weighting often sufficient with lambda_IC = 10\n- Steady-state limit (Poisson equation) is even easier — see poisson_equation.md\n- Multi-scale heat equation (multiple alpha values in different regions) becomes harder",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 3-4 hidden layers x 32-64 neurons — larger is unnecessary, slower, no gain\n- Activation: tanh or sigmoid; ReLU not recommended (second derivatives are zero)\n- Collocation points: 3,000-5,000 interior; 500 boundary; 200 IC points\n- For high-dimensional heat equation (d > 3): use 10,000+ points, consider DeepGalerkin method\n- Hard IC ansatz: u(x,t) = u0(x) + t * NN(x,t) ensures exact IC satisfaction at t=0\n- This ansatz is particularly effective here because the exact IC form is simple",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Essentially none for simple geometries — this is the \"works out of the box\" case\n- Multi-scale domains with different thermal conductivities: interface discontinuity in derivatives\n- High-dimensional inputs (d > 5): curse of dimensionality in collocation, use QMC sampling\n- Long time horizons (t >> 1/alpha): solution becomes nearly constant, gradient signal weakens\n- Oscillatory IC (e.g., u0 = sin(20*pi*x)): spectral bias slows learning of high-freq IC",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Standard Adam optimizer with lr=1e-3 followed by L-BFGS for polishing\n- No special techniques needed for standard 1D/2D problems\n- For oscillatory IC: apply Fourier feature embedding or increase IC weight substantially (lambda=1000)\n- For long time domains: time-marching (split [0,T] into windows, solve sequentially)\n- IC hard constraint: u_hat(x,t) = u0(x) + t*NN(x,t) — removes IC as training variable",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP\n- Lagaris, Likas, Fotiadis (1998) — Artificial neural networks for solving ODE/PDE boundary value problems\n- Berg, Nystrom (2018) — A unified deep artificial neural network approach to PDE in complex geometries",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

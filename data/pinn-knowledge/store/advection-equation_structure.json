@@ -1,0 +1,88 @@
+{
+  "doc_name": "advection_equation",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/advection_equation.md",
+  "pde_type": "Linear first-order hyperbolic PDE: u_t + c*u_x = 0",
+  "spatial_dim": null,
+  "known_issues": [
+    "Trivial solution",
+    "Phase velocity error",
+    "Discontinuous IC",
+    "Large c with periodic domain",
+    "Training on residuals only"
+  ],
+  "techniques": [
+    "Characteristics-based sampling",
+    "Dense IC enforcement",
+    "Causal temporal weighting",
+    "Fourier feature embedding tuned to advection speed",
+    "Method of characteristics hybrid",
+    "Consider finite-difference pretraining",
+    "Time-stepping with small windows"
+  ],
+  "keywords": [
+    "advection",
+    "collocation",
+    "periodic",
+    "spectral bias",
+    "wave"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Advection Equation",
+      "text": "# Advection Equation",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nLinear first-order hyperbolic PDE: u_t + c*u_x = 0\nSolution: u(x,t) = u0(x - c*t) — exact translation of initial condition at speed c.\nNo dissipation, no smoothing. Hardest class for standard PINNs.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Widely regarded as one of the hardest problems for PINNs\n- For c=1, standard PINN achieves ~1e-2 L2 error; for c=40, error typically > 1e-1\n- Root cause: no diffusion means no smoothing — any approximation error propagates without decay\n- Characteristics are lines x - c*t = const; network must align with these exactly\n- Spectral bias: network prefers smooth, low-frequency solutions but advection requires exact IC propagation\n- Causal training is necessary but not sufficient for large c\n- At c > 10: vanilla PINN essentially fails without Fourier features or physics-aware architecture\n- Periodic IC (sin wave) easier than non-periodic; discontinuous IC (step function) nearly impossible",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 6-8 hidden layers x 128 neurons\n- Activation: tanh with Fourier feature embedding (mandatory for c > 5)\n- Fourier features: embed (x,t) as [sin(2pi*k*x), cos(2pi*k*x), sin(2pi*k*c*t), cos(2pi*k*c*t)] for k=1..20\n- Collocation points: 20,000-50,000; characteristic-aligned sampling strongly preferred\n- IC points: dense, 2,000+; IC must be weighted very high (lambda_IC = 100-1000)\n- Characteristic-aware sampling: place collocation points along characteristics x - c*t = const",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Trivial solution: u(x,t) = 0 satisfies the PDE if IC weight is too low — network learns zero solution\n- Phase velocity error: network propagates wave at wrong speed; solution looks correct but is translated\n- Discontinuous IC: step function IC causes Gibbs-like oscillations; network cannot represent jump\n- Large c with periodic domain: solution wraps around multiple times; network sees aliased signal\n- Training on residuals only: without sufficient IC weight, PDE residual is small for many wrong solutions",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Characteristics-based sampling: explicitly compute characteristic lines and place collocation on them\n- Dense IC enforcement: lambda_IC = 1000, 5000+ IC points — this is the primary anchor\n- Causal temporal weighting: weight early-time residuals first (epsilon-causal scheme)\n- Fourier feature embedding tuned to advection speed: include frequencies at multiples of c\n- Method of characteristics hybrid: solve along characteristics analytically, use PINN only for interpolation\n- Consider finite-difference pretraining: warm-start network with FD solution before PINN fine-tuning\n- Time-stepping with small windows: solve [0, L/c] as one window, avoid multi-period wrapping",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Krishnapriyan, Gholami, Zhe, Kirby, Mahoney (2021) — Characterizing possible failure modes in physics-informed neural networks, NeurIPS\n- Wang, Wang, Perdikaris (2022) — Respecting causality is all you need for training physics-informed neural networks\n- Peng, Liu, Wen, Li (2022) — Attention-based physics-informed neural networks for the advection-diffusion equation",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

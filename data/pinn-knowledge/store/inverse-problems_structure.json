@@ -1,0 +1,90 @@
+{
+  "doc_name": "inverse_problems",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/inverse_problems.md",
+  "pde_type": "Goal: identify unknown parameters theta in F(u; theta) = 0 given sparse observations of u.",
+  "spatial_dim": null,
+  "known_issues": [
+    "Non-identifiability",
+    "Local minima in theta",
+    "Data overfitting",
+    "Physics stiffness at wrong theta",
+    "Regularization bias"
+  ],
+  "techniques": [
+    "Sensitivity analysis",
+    "Initialization",
+    "Alternating optimization",
+    "Bayesian PINN",
+    "Ensemble-based UQ",
+    "Regularization for function-valued theta",
+    "Data normalization",
+    "Hessian analysis",
+    "Tikhonov regularization"
+  ],
+  "keywords": [
+    "burgers",
+    "collocation",
+    "heat",
+    "helmholtz",
+    "inverse"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Inverse Problems",
+      "text": "# Inverse Problems",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nGoal: identify unknown parameters theta in F(u; theta) = 0 given sparse observations of u.\nExamples: find nu in Burgers from velocity snapshots; find k in Helmholtz from scattered field measurements.\nLoss: L = L_residual(theta) + L_data(theta) where L_data penalizes mismatch with observations.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Inverse problems are often well-suited to PINNs — physics constrains the solution even with sparse data\n- theta is treated as a trainable variable (alongside network weights); optimized jointly\n- Works best when: forward problem is well-posed, theta enters linearly (or mildly nonlinearly)\n- Fails when: problem is ill-posed, multiple theta give similar observations (non-identifiable)\n- Raissi et al. (2019) demonstrated nu identification in NS from 10 scattered observations — works reliably\n- Over-parameterization: if theta is a function (spatially varying), use separate NN or basis expansion for theta\n- Identifiability: if u -> theta is many-to-one, regularization on theta is necessary\n- Data noise amplification: measurement noise in u amplifies into theta estimate via inversion",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Network for u: standard PINN architecture (4-8 layers, tanh)\n- theta as scalar: torch.nn.Parameter([theta_init]) — one extra variable\n- theta as function: separate small NN (2-3 layers x 32 neurons) for theta(x)\n- Data loss: L_data = sum_{i=1}^{N_data} |NN(x_i, t_i) - u_obs_i|^2 / N_data\n- Physics loss: standard residual on collocation points\n- Loss weights: lambda_data = 1-100 (higher than physics if data is clean, lower if noisy)\n- Collocation: fill domain densely even where no observations; physics constrains interpolation\n- N_data: 10-100 observations usually sufficient for scalar theta identification; more for theta(x)",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Non-identifiability: u depends on theta only through certain combinations; rank-deficient sensitivity\n  Example: diffusivity k in heat equation is non-identifiable from final-time-only data if t is large\n- Local minima in theta: loss landscape in (weights, theta) can have multiple basins\n- Data overfitting: if lambda_data too high and N_data too small, network fits noise in observations\n- Physics stiffness at wrong theta: during optimization, theta may pass through values that make PDE stiff\n- Regularization bias: adding L2 regularization on theta introduces bias; theta is pulled toward zero",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Sensitivity analysis: compute d(u)/d(theta) at init to verify theta influences the observable quantities\n- Initialization: start theta at physical prior (e.g., nu=0.01 for Burgers flow); don't start at zero\n- Alternating optimization: fix theta, update network weights for K steps; then update theta one step\n- Bayesian PINN: treat theta as random variable with prior; use variational inference for posterior\n- Ensemble-based UQ: run 20 inversions with different random seeds; spread in theta estimates = uncertainty\n- Regularization for function-valued theta: total variation or L2 gradient penalty on theta(x)\n- Data normalization: normalize observations to O(1) before computing L_data; prevents scale mismatch\n- Hessian analysis: compute d^2(L)/d(theta)^2 at converged solution; large Hessian = well-identified\n- Tikhonov regularization: L_reg = ||theta - theta_prior||^2 with weight tuned by cross-validation",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Perdikaris, Karniadakis (2019) — Physics-informed neural networks, JCP\n- Chen, Koohy, Hochholzer, Babaee (2020) — Physics-informed neural networks for inverse problems in structural dynamics\n- Yang, Meng, Karniadakis (2021) — B-PINNs: Bayesian physics-informed neural networks for forward and inverse PDE problems with noisy data\n- Tartakovsky, Marrero, Perdikaris, Tartakovsky, Barajas-Solano (2020) — Physics-informed deep neural networks for learning parameters and constitutive relationships in subsurface flow problems",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

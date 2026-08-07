@@ -5,17 +5,22 @@ Two modes:
    Fast, reproducible, no LLM call needed.
 2. **LLM-assisted**: asks the LLM for architecture advice given PDE features.
    Useful for unusual problems where rules don't cover well.
+
+Both modes optionally augment recommendations with retrieved knowledge
+from the PINN knowledge base (BM25 search, no LLM cost for retrieval).
 """
 
 from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 from llm_provider import LLMClient
 from loguru import logger
 
 from ..schemas import ArchitectureRec, PDESpec
+from .knowledge import build_search_query, load_knowledge, search_knowledge
 
 # ---------------------------------------------------------------------------
 # Rule-based architecture recommendation
@@ -153,10 +158,17 @@ class PINNAgent:
 
     Args:
         client: LLM client. Only needed if ``use_llm=True`` in :meth:`recommend`.
+        knowledge_store_dir: Path to pre-built knowledge store.
+            Uses the default store if not specified.
     """
 
-    def __init__(self, client: LLMClient | None = None):
+    def __init__(
+        self,
+        client: LLMClient | None = None,
+        knowledge_store_dir: str | Path | None = None,
+    ):
         self.client = client
+        self._knowledge = load_knowledge(knowledge_store_dir)
 
     def recommend(self, spec: PDESpec, *, use_llm: bool = False) -> ArchitectureRec:
         """Produce an architecture recommendation.
@@ -170,7 +182,26 @@ class PINNAgent:
         """
         if use_llm:
             return self._recommend_llm(spec)
-        return recommend_architecture(spec)
+        return self._recommend_rules(spec)
+
+    def _get_knowledge_context(self, spec: PDESpec) -> str:
+        """Retrieve relevant knowledge base context for this PDE."""
+        if self._knowledge is None:
+            return ""
+        store, engine = self._knowledge
+        query = build_search_query(spec)
+        return search_knowledge(query, store, engine)
+
+    def _recommend_rules(self, spec: PDESpec) -> ArchitectureRec:
+        """Rule-based recommendation augmented with knowledge context."""
+        rec = recommend_architecture(spec)
+
+        context = self._get_knowledge_context(spec)
+        if context:
+            rec.knowledge_context = context
+            logger.info("PINN Agent: augmented recommendation with knowledge base context")
+
+        return rec
 
     def _recommend_llm(self, spec: PDESpec) -> ArchitectureRec:
         if self.client is None:
@@ -191,6 +222,16 @@ class PINNAgent:
             f"Periodic BC: {spec.has_periodic_bc}\n"
             f"Output dim: {spec.output_dim}"
         )
+
+        # Augment with knowledge base context
+        context = self._get_knowledge_context(spec)
+        if context:
+            prompt += (
+                "\n\n--- Relevant Literature Context ---\n"
+                "Use this retrieved knowledge to inform your recommendation:\n\n"
+                f"{context}"
+            )
+            logger.info("PINN Agent: injected knowledge context into LLM prompt")
 
         logger.info("PINN Agent: consulting LLM for architecture advice")
         raw = self.client.ask(prompt, system=_SYSTEM_PROMPT)

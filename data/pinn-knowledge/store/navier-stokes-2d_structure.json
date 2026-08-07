@@ -1,0 +1,88 @@
+{
+  "doc_name": "navier_stokes_2d",
+  "source_path": "/Users/bhanu/Documents/Work/2026/research/machine-learning/code/code-repos/PINN/data/pinn-knowledge/sources/navier_stokes_2d.md",
+  "pde_type": "Incompressible 2D NS: u_t + u*u_x + v*u_y = -p_x + nu*(u_xx+u_yy)",
+  "spatial_dim": null,
+  "known_issues": [
+    "Pressure non-uniqueness",
+    "Continuity soft constraint",
+    "High Reynolds number",
+    "Pressure-velocity decoupling",
+    "Stagnation point singularity"
+  ],
+  "techniques": [
+    "Streamfunction formulation",
+    "Vorticity-streamfunction",
+    "Pressure gauge",
+    "Adaptive sampling near walls",
+    "For inverse NS",
+    "Domain decomposition for complex geometries; interface conditions via XPINNs",
+    "Physics-informed PointNet for irregular geometries"
+  ],
+  "keywords": [
+    "collocation",
+    "heat",
+    "inverse",
+    "navier-stokes",
+    "poisson"
+  ],
+  "root_nodes": [
+    {
+      "node_id": "0001",
+      "title": "Navier-Stokes 2D",
+      "text": "# Navier-Stokes 2D",
+      "level": 1,
+      "summary": "",
+      "children": [
+        {
+          "node_id": "0002",
+          "title": "Equation Type",
+          "text": "## Equation Type\nIncompressible 2D NS: u_t + u*u_x + v*u_y = -p_x + nu*(u_xx+u_yy)\n                       v_t + u*v_x + v*v_y = -p_y + nu*(v_xx+v_yy)\n                       u_x + v_y = 0 (continuity)\nFour unknowns: (u, v, p) with continuity as a hard constraint.",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0003",
+          "title": "Key Findings",
+          "text": "## Key Findings\n- Pressure p is not uniquely defined (gauge invariance: p + const is also a solution)\n- Must fix pressure gauge: pin p at one point, or use mean-zero constraint\n- Streamfunction-vorticity formulation eliminates pressure and automatically satisfies continuity\n- Streamfunction psi: u = psi_y, v = -psi_x — reduces 3 unknowns to 1, continuity is exact\n- For Re < 100 (laminar): PINNs perform well with ~50,000 collocation points\n- For Re > 1000: turbulent regime, PINNs struggle without additional physics or data\n- Data-driven NS (inverse problem to find nu from velocity field) is well-solved by PINNs\n- Cavity flow (lid-driven) at Re=100: L2 error ~1e-3 with standard PINN",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0004",
+          "title": "Recommended Architecture",
+          "text": "## Recommended Architecture\n- Layers: 8 hidden layers x 64 neurons\n- Activation: tanh\n- Output heads: [u, v, p] (3 outputs) — or [psi] (1 output) for streamfunction formulation\n- Collocation points: 50,000 interior for Re=100; 200,000 for Re=1000\n- Boundary points: 1,000 per boundary segment\n- Temporal collocation: if unsteady, use 100,000+ space-time points\n- Pressure gauge fix: add constraint loss L_gauge = (p(x0,y0) - p_ref)^2 with large weight",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0005",
+          "title": "Known Failure Modes",
+          "text": "## Known Failure Modes\n- Pressure non-uniqueness: without gauge fixing, p drifts; continuity residual appears converged but p is wrong\n- Continuity soft constraint: often under-satisfied; enforce with lambda_continuity = 10-100\n- High Reynolds number: insufficient collocation near boundary layers; exponential boundary layer profile\n- Pressure-velocity decoupling: optimizer minimizes momentum and continuity independently, can get locally feasible but globally inconsistent solution\n- Stagnation point singularity: u=v=0 at corners with conflicting BCs causes large residuals",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0006",
+          "title": "Techniques",
+          "text": "## Techniques\n- Streamfunction formulation: psi -> (u,v) by differentiation, eliminates continuity and pressure gauge\n- Vorticity-streamfunction: omega = v_x - u_y, psi_xx + psi_yy = -omega (Poisson)\n- Pressure gauge: pin p at domain center or add mean(p)=0 loss\n- Adaptive sampling near walls: boundary layer requires fine resolution (y+ < 1 equivalent)\n- For inverse NS: observe (u,v) at sparse points, treat nu as trainable parameter\n- Domain decomposition for complex geometries; interface conditions via XPINNs\n- Physics-informed PointNet for irregular geometries",
+          "level": 2,
+          "summary": "",
+          "children": []
+        },
+        {
+          "node_id": "0007",
+          "title": "References",
+          "text": "## References\n- Raissi, Yazdani, Karniadakis (2020) — Hidden fluid mechanics: Learning velocity and pressure fields from flow visualizations, Science\n- Jin, Cai, Li, Karniadakis (2021) — NSFnets (Navier-Stokes flow nets): Physics-informed neural networks for the incompressible Navier-Stokes equations\n- Cai, Mao, Wang, Yin, Karniadakis (2021) — Physics-informed neural networks for heat transfer problems",
+          "level": 2,
+          "summary": "",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

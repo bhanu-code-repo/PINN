@@ -67,6 +67,10 @@ A vectorless RAG system that uses document structure as the index instead of vec
 
 No vector database, no embeddings, no chunking artifacts. The document structure *is* the index.
 
+### PINN Knowledge Base
+
+A curated collection of 20 PDE-specific knowledge entries covering equations (Burgers, heat, wave, Schrödinger, Navier-Stokes, etc.), techniques (Ansatz, collocation, curriculum training, loss weighting), and common failure modes (spectral bias, training stability). The PINN Agent retrieves relevant entries via BM25 search (no LLM cost) and augments both rule-based and LLM-assisted recommendations with literature-backed guidance.
+
 The hybrid mode is where it gets interesting: the LLM generates code, the `pinn` library executes it, the Feedback Agent scores it, and the LLM refines — a quality-gated loop that combines LLM flexibility with library reliability.
 
 ### 11 Experiments Spanning 4 Domains
@@ -185,6 +189,7 @@ PINN/
 ├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
 ├── libs/lang-pinn/     Lang-PINN multi-agent framework (PDE/PINN/Code agents, orchestrator)
 ├── libs/rag/           Structure-based RAG (markdown/PDF indexing, BM25 + LLM retrieval)
+├── data/pinn-knowledge/ PINN knowledge base (20 curated entries + pre-built index)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              12-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
@@ -234,7 +239,7 @@ jupyter lab learn/
 | Lang-PINN multi-agent framework (LLM-guided PINNs) | Done |
 | Lang-PINN dashboard page + learning notebooks (10-12) | Done |
 | Structure-based RAG library (vectorless, BM25 + LLM retrieval) | Done |
-| PINN knowledge base + RAG-enhanced recommendations | Planned |
+| PINN knowledge base + RAG-enhanced recommendations | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 
