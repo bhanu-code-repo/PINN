@@ -535,9 +535,25 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 
 ---
 
+## 2026-08-07
+
+### Phase 26 — Knowledge Base dashboard page
+**Branch:** `feature/knowledge-base-dashboard`
+
+- New **Knowledge Base** page in the Streamlit dashboard (`dashboard.py`).
+- Overview metrics: document count, total nodes, total tokens, technique count.
+- **BM25 search** over all knowledge entries with live results ranking.
+- **Keyword filter** dropdown to narrow by PDE keyword.
+- Expandable document cards showing: equation type, techniques, known issues,
+  keywords, node/token counts, indexed date.
+- "Show full content" toggle renders the full hierarchical document tree.
+- Navigation sidebar updated with `:material/menu_book:` icon.
+- 258 total fast tests, all passing.
+
+---
+
 ## Roadmap / Deferred
 
-- **Knowledge Base admin UI** — dashboard page for browsing/managing indexed papers.
 - **Notebook 13** — RAG-enhanced recommendations walkthrough.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
