@@ -472,10 +472,43 @@ Dashboard update and 3-notebook Lang-PINN learning series.
   `README.md` (tree, notebook count), `docs/project-overview.md` (stats,
   curriculum, dashboard, roadmap), `docs/dashboard.md` (Lang-PINN page).
 
+### Phase 24 — Structure-Based RAG Library
+**PR:** (feature/rag-library → main)
+
+Vectorless RAG library adapted from the reference codebase. Uses document
+structure as the index instead of vector embeddings — no chunking artifacts.
+
+- `libs/rag/` — new workspace member with modular nested structure:
+  - `src/rag/models/schemas.py` — shared dataclasses: `TreeNode`, `DocumentTree`,
+    `DocumentMetadata`, `RetrievalResult`.
+  - `src/rag/indexing/markdown.py` — markdown parsing: header extraction (code-block
+    aware), text attachment, token counting, tree thinning, hierarchical tree building.
+    Pure functions, no LLM dependency.
+  - `src/rag/indexing/pdf.py` — PDF-to-markdown conversion via `pymupdf4llm`
+    (font-size header detection, table preservation, zero LLM cost).
+  - `src/rag/indexing/indexer.py` — `MarkdownIndexer` orchestrator: reads PDF or
+    markdown, delegates to parser, builds `DocumentTree`, optionally generates
+    per-node LLM summaries with semaphore rate limiting.
+  - `src/rag/store.py` — `KnowledgeStore`: filesystem-based persistence with
+    manifest.json + per-document structure JSON. CRUD operations, slug-based IDs,
+    save/load round-trip.
+  - `src/rag/search.py` — `SearchEngine`: BM25 keyword search over document
+    metadata + node content. `from_store()` factory builds index from all documents.
+  - `src/rag/retrieve.py` — 2-tier retrieval pipeline: BM25 pre-filter → LLM
+    reasons over summarized trees (titles + summaries only) to select node IDs →
+    fetch full text for selected nodes. Source attribution in results.
+- `libs/rag/tests/` — 49 tests: indexing (13), store (15), search (7),
+  retrieval (14). All LLM calls mocked.
+- Dependencies: `llm-provider` (workspace), `pymupdf4llm`, `rank-bm25`, `loguru`.
+- 229 total fast tests (up from 197 pre-RAG + 3 from Phase 23), all passing.
+
 ---
 
 ## Roadmap / Deferred
 
+- **PINN knowledge base** — curate PINN papers, integrate RAG into PINN Agent's
+  `recommend()` for literature-aware architecture recommendations.
+- **Knowledge Base admin UI** — dashboard page for browsing/managing indexed papers.
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
   Adam->L-BFGS. Documented as deferred research problem.
 - **ONNX/FastAPI export** — serve trained models for real-time inference.

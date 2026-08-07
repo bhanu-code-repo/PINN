@@ -19,6 +19,7 @@ members = [
     "libs/pinn",
     "libs/llm-provider",
     "libs/lang-pinn",
+    "libs/rag",
 ]
 
 [project.scripts]
@@ -53,7 +54,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "libs/pinn/tests", "libs/llm-provider/tests", "libs/lang-pinn/tests"]
+testpaths = ["tests", "libs/pinn/tests", "libs/llm-provider/tests", "libs/lang-pinn/tests", "libs/rag/tests"]
 addopts = "-m 'not slow' -q"
 markers = [
     "slow: long-running convergence tests (run with: uv run pytest -m slow)",

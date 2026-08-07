@@ -27,11 +27,18 @@ PINN/
 │   │   └── src/llm_provider/
 │   │       ├── config.py         # LLMConfig: env/.env/kwargs resolution, Ollama Cloud auth
 │   │       └── client.py         # LLMClient: sync + async, streaming, system messages
-│   └── lang-pinn/                # Lang-PINN multi-agent framework — see libs/lang-pinn/README.md
-│       └── src/lang_pinn/
-│           ├── agents/           # PDE Agent, PINN Agent, Code Agent
-│           ├── orchestrator.py   # 3-mode runner (library / code-agent / hybrid)
-│           └── schemas.py        # PDESpec, ArchitectureRec dataclasses
+│   ├── lang-pinn/                # Lang-PINN multi-agent framework — see libs/lang-pinn/README.md
+│   │   └── src/lang_pinn/
+│   │       ├── agents/           # PDE Agent, PINN Agent, Code Agent
+│   │       ├── orchestrator.py   # 3-mode runner (library / code-agent / hybrid)
+│   │       └── schemas.py        # PDESpec, ArchitectureRec dataclasses
+│   └── rag/                      # Structure-based RAG library — see libs/rag/README.md
+│       └── src/rag/
+│           ├── models/           # TreeNode, DocumentTree, DocumentMetadata, RetrievalResult
+│           ├── indexing/         # Markdown parser, PDF converter, MarkdownIndexer
+│           ├── store.py          # JSON-based knowledge store
+│           ├── search.py         # BM25 keyword search engine
+│           └── retrieve.py       # 2-tier retrieval: BM25 pre-filter + LLM reasoning
 ├── experiments/
 │   ├── harmonic_oscillator/      # Damped harmonic oscillator ODE — see its README.md
 │   ├── burgers/                  # Burgers' equation
