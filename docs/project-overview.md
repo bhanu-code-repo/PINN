@@ -240,6 +240,7 @@ jupyter lab learn/
 | Lang-PINN dashboard page + learning notebooks (10-12) | Done |
 | Structure-based RAG library (vectorless, BM25 + LLM retrieval) | Done |
 | PINN knowledge base + RAG-enhanced recommendations | Done |
+| Knowledge Base dashboard page (search, browse, filter) | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

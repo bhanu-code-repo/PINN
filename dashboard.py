@@ -927,6 +927,116 @@ def page_lang_pinn():
     )
 
 
+def page_knowledge_base():
+    """Browse and search the PINN knowledge base."""
+    from rag import KnowledgeStore, SearchEngine
+
+    store_dir = Path("data/pinn-knowledge/store")
+    if not (store_dir / "manifest.json").exists():
+        st.warning(
+            "Knowledge store not found. Build it first:\n\n"
+            "```bash\nuv run python data/pinn-knowledge/build_index.py\n```"
+        )
+        return
+
+    store = KnowledgeStore.load(store_dir)
+    engine = SearchEngine.from_store(store)
+    docs = store.list_documents()
+
+    # --- Overview metrics ---
+    total_nodes = sum(d.node_count for d in docs)
+    total_tokens = sum(d.total_tokens for d in docs)
+    all_techniques = sorted({t for d in docs for t in d.techniques})
+    all_keywords = sorted({k for d in docs for k in d.keywords})
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Documents", len(docs))
+    c2.metric("Total Nodes", total_nodes)
+    c3.metric("Total Tokens", f"{total_tokens:,}")
+    c4.metric("Techniques", len(all_techniques))
+
+    st.markdown("---")
+
+    # --- Search ---
+    col_search, col_filter = st.columns([2, 1])
+    query = col_search.text_input(
+        ":material/search: Search knowledge base",
+        placeholder="e.g. burgers shock viscosity, spectral bias, loss weighting...",
+    )
+    keyword_filter = col_filter.selectbox(
+        "Filter by keyword",
+        ["All"] + all_keywords,
+    )
+
+    # Determine which docs to show
+    if query.strip():
+        matched_ids = engine.search(query, top_k=20)
+        if not matched_ids:
+            st.info("No results found. Try different search terms.")
+            return
+        filtered = [d for d in docs if d.doc_id in matched_ids]
+        # Preserve BM25 ranking
+        id_order = {doc_id: i for i, doc_id in enumerate(matched_ids)}
+        filtered.sort(key=lambda d: id_order.get(d.doc_id, 999))
+        st.caption(f"Found **{len(filtered)}** results for \"{query}\"")
+    else:
+        filtered = docs
+
+    if keyword_filter != "All":
+        filtered = [d for d in filtered if keyword_filter in d.keywords]
+
+    # --- Document cards ---
+    for meta in filtered:
+        pde_label = meta.pde_type.split(":")[0].strip() if meta.pde_type else "General"
+        title = format_experiment_name(meta.doc_name)
+
+        with st.expander(
+            f":material/article: **{title}** — {pde_label}",
+            expanded=bool(query.strip()),
+        ):
+            # Metadata row
+            mc1, mc2, mc3 = st.columns(3)
+            mc1.caption(f"**Nodes:** {meta.node_count}  |  **Tokens:** {meta.total_tokens}")
+            mc2.caption(f"**ID:** `{meta.doc_id}`")
+            indexed_date = meta.indexed_at.split("T")[0] if meta.indexed_at else "?"
+            mc3.caption(f"**Indexed:** {indexed_date}")
+
+            # PDE type
+            if meta.pde_type:
+                st.markdown(f"**Equation Type:** `{meta.pde_type}`")
+
+            # Techniques
+            if meta.techniques:
+                tech_chips = "  ".join(f"`{t}`" for t in meta.techniques)
+                st.markdown(f"**Techniques:** {tech_chips}")
+
+            # Known issues
+            if meta.known_issues:
+                issue_chips = "  ".join(f"`{i}`" for i in meta.known_issues)
+                st.markdown(f"**Known Issues:** {issue_chips}")
+
+            # Keywords
+            if meta.keywords:
+                kw_chips = "  ".join(f"`{k}`" for k in meta.keywords)
+                st.markdown(f"**Keywords:** {kw_chips}")
+
+            # Full content toggle
+            if st.toggle("Show full content", key=f"content_{meta.doc_id}"):
+                tree = store.get_document(meta.doc_id)
+                _render_tree_nodes(tree.root_nodes, level=0)
+
+
+def _render_tree_nodes(nodes, level: int) -> None:
+    """Recursively render tree nodes as nested markdown."""
+    for node in nodes:
+        prefix = "#" * min(node.level + 1, 5)
+        st.markdown(f"{prefix} {node.title}")
+        if node.text:
+            st.markdown(node.text)
+        if node.children:
+            _render_tree_nodes(node.children, level + 1)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -954,6 +1064,7 @@ with st.sidebar:
             ":material/bar_chart: Compare",
             ":material/tune: Parametric Predictor",
             ":material/smart_toy: Lang-PINN",
+            ":material/menu_book: Knowledge Base",
         ],
         label_visibility="collapsed",
     )
@@ -982,3 +1093,5 @@ elif "Parametric" in page:
     page_parametric()
 elif "Lang-PINN" in page:
     page_lang_pinn()
+elif "Knowledge" in page:
+    page_knowledge_base()
