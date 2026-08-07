@@ -60,8 +60,10 @@ A vectorless RAG system that uses document structure as the index instead of vec
 | Component | What It Does |
 |-----------|-------------|
 | **Markdown Indexer** | Parses headers into hierarchical trees, extracts text per section, tree thinning for small nodes |
-| **PDF Converter** | Zero-cost PDF-to-markdown via pymupdf4llm (font-size header detection, tables, multi-column) |
+| **Hybrid PDF Converter** | pymupdf4llm for text-heavy pages (free) + LLM vision for complex pages (diagrams, graphs). Per-page complexity detection |
 | **Knowledge Store** | JSON-based persistence with manifest + per-document structure files, CRUD operations |
+| **File Registry** | SQLite-backed SHA-256 deduplication, ingestion tracking, conversion metadata. PostgreSQL-ready |
+| **Ingestion Pipeline** | Single entry point: dedup check → convert → index → store → register. Handles md/txt/pdf |
 | **BM25 Search** | Keyword pre-filter over document metadata and node content for fast candidate narrowing |
 | **2-Tier Retrieval** | BM25 narrows candidates → LLM reasons over summarized trees → fetches full text for selected nodes |
 
@@ -109,7 +111,7 @@ A Streamlit web application for exploring results without writing code:
 
 ### Learning Curriculum
 
-A 12-notebook progressive course (~7 hours) that takes someone from zero PINN knowledge to LLM-guided equation solving:
+A 14-notebook progressive course (~8 hours) that takes someone from zero PINN knowledge to LLM-guided equation solving:
 
 | Notebook | Topic |
 |----------|-------|
@@ -191,7 +193,7 @@ PINN/
 ├── libs/rag/           Structure-based RAG (markdown/PDF indexing, BM25 + LLM retrieval)
 ├── data/pinn-knowledge/ PINN knowledge base (20 curated entries + pre-built index)
 ├── experiments/        11 self-contained experiment CLIs
-├── learn/              12-notebook progressive curriculum
+├── learn/              14-notebook progressive curriculum
 ├── notebooks/          4 experiment analysis notebooks
 ├── dashboard.py        Streamlit interactive dashboard
 ├── docs/               Technical documentation
@@ -241,6 +243,7 @@ jupyter lab learn/
 | Structure-based RAG library (vectorless, BM25 + LLM retrieval) | Done |
 | PINN knowledge base + RAG-enhanced recommendations | Done |
 | Knowledge Base dashboard page (search, browse, filter) | Done |
+| Hybrid PDF, SQLite registry, ingestion pipeline + notebooks 13-14 | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 
