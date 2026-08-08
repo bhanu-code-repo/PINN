@@ -30,7 +30,7 @@
     ],
     "node_count": 7,
     "total_tokens": 452,
-    "indexed_at": "2026-08-07T20:56:19.210512+00:00"
+    "indexed_at": "2026-08-08T02:58:12.198755+00:00"
   },
   {
     "doc_id": "allen-cahn-equation",
@@ -64,7 +64,7 @@
     ],
     "node_count": 7,
     "total_tokens": 442,
-    "indexed_at": "2026-08-07T20:56:19.212072+00:00"
+    "indexed_at": "2026-08-08T02:58:12.200482+00:00"
   },
   {
     "doc_id": "ansatz-methods",
@@ -98,7 +98,7 @@
     ],
     "node_count": 7,
     "total_tokens": 547,
-    "indexed_at": "2026-08-07T20:56:19.213830+00:00"
+    "indexed_at": "2026-08-08T02:58:12.202190+00:00"
   },
   {
     "doc_id": "burgers-equation",
@@ -133,7 +133,7 @@
     ],
     "node_count": 7,
     "total_tokens": 417,
-    "indexed_at": "2026-08-07T20:56:19.215242+00:00"
+    "indexed_at": "2026-08-08T02:58:12.203646+00:00"
   },
   {
     "doc_id": "collocation-strategies",
@@ -171,7 +171,7 @@
     ],
     "node_count": 7,
     "total_tokens": 560,
-    "indexed_at": "2026-08-07T20:56:19.217448+00:00"
+    "indexed_at": "2026-08-08T02:58:12.205296+00:00"
   },
   {
     "doc_id": "curriculum-training",
@@ -207,7 +207,7 @@
     ],
     "node_count": 7,
     "total_tokens": 635,
-    "indexed_at": "2026-08-07T20:56:19.219581+00:00"
+    "indexed_at": "2026-08-08T02:58:12.207008+00:00"
   },
   {
     "doc_id": "heat-equation",
@@ -239,7 +239,7 @@
     ],
     "node_count": 7,
     "total_tokens": 394,
-    "indexed_at": "2026-08-07T20:56:19.221088+00:00"
+    "indexed_at": "2026-08-08T02:58:12.208455+00:00"
   },
   {
     "doc_id": "helmholtz-equation",
@@ -273,7 +273,7 @@
     ],
     "node_count": 7,
     "total_tokens": 511,
-    "indexed_at": "2026-08-07T20:56:19.222780+00:00"
+    "indexed_at": "2026-08-08T02:58:12.210080+00:00"
   },
   {
     "doc_id": "high-frequency-odes",
@@ -307,7 +307,7 @@
     ],
     "node_count": 7,
     "total_tokens": 568,
-    "indexed_at": "2026-08-07T20:56:19.224598+00:00"
+    "indexed_at": "2026-08-08T02:58:12.211591+00:00"
   },
   {
     "doc_id": "inverse-problems",
@@ -342,7 +342,7 @@
     ],
     "node_count": 7,
     "total_tokens": 559,
-    "indexed_at": "2026-08-07T20:56:19.226186+00:00"
+    "indexed_at": "2026-08-08T02:58:12.213150+00:00"
   },
   {
     "doc_id": "korteweg-de-vries",
@@ -376,7 +376,7 @@
     ],
     "node_count": 7,
     "total_tokens": 507,
-    "indexed_at": "2026-08-07T20:56:19.227772+00:00"
+    "indexed_at": "2026-08-08T02:58:12.214708+00:00"
   },
   {
     "doc_id": "loss-weighting",
@@ -405,7 +405,7 @@
     ],
     "node_count": 7,
     "total_tokens": 509,
-    "indexed_at": "2026-08-07T20:56:19.229339+00:00"
+    "indexed_at": "2026-08-08T02:58:12.216088+00:00"
   },
   {
     "doc_id": "navier-stokes-2d",
@@ -438,7 +438,7 @@
     ],
     "node_count": 7,
     "total_tokens": 441,
-    "indexed_at": "2026-08-07T20:56:19.233871+00:00"
+    "indexed_at": "2026-08-08T02:58:12.217389+00:00"
   },
   {
     "doc_id": "parametric-pinns",
@@ -472,7 +472,7 @@
     ],
     "node_count": 7,
     "total_tokens": 529,
-    "indexed_at": "2026-08-07T20:56:19.235551+00:00"
+    "indexed_at": "2026-08-08T02:58:12.218926+00:00"
   },
   {
     "doc_id": "periodic-boundary-conditions",
@@ -507,7 +507,7 @@
     ],
     "node_count": 7,
     "total_tokens": 555,
-    "indexed_at": "2026-08-07T20:56:19.237487+00:00"
+    "indexed_at": "2026-08-08T02:58:12.220516+00:00"
   },
   {
     "doc_id": "poisson-equation",
@@ -539,7 +539,7 @@
     ],
     "node_count": 7,
     "total_tokens": 457,
-    "indexed_at": "2026-08-07T20:56:19.239038+00:00"
+    "indexed_at": "2026-08-08T02:58:12.222203+00:00"
   },
   {
     "doc_id": "schrodinger-equation",
@@ -572,7 +572,7 @@
     ],
     "node_count": 7,
     "total_tokens": 424,
-    "indexed_at": "2026-08-07T20:56:19.240408+00:00"
+    "indexed_at": "2026-08-08T02:58:12.223627+00:00"
   },
   {
     "doc_id": "spectral-bias",
@@ -606,7 +606,7 @@
     ],
     "node_count": 7,
     "total_tokens": 521,
-    "indexed_at": "2026-08-07T20:56:19.241854+00:00"
+    "indexed_at": "2026-08-08T02:58:12.225100+00:00"
   },
   {
     "doc_id": "training-stability",
@@ -641,7 +641,7 @@
     ],
     "node_count": 7,
     "total_tokens": 519,
-    "indexed_at": "2026-08-07T20:56:19.243312+00:00"
+    "indexed_at": "2026-08-08T02:58:12.226736+00:00"
   },
   {
     "doc_id": "wave-equation",
@@ -673,6 +673,6 @@
     ],
     "node_count": 7,
     "total_tokens": 434,
-    "indexed_at": "2026-08-07T20:56:19.244655+00:00"
+    "indexed_at": "2026-08-08T02:58:12.227985+00:00"
   }
 ]

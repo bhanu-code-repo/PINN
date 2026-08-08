@@ -928,8 +928,8 @@ def page_lang_pinn():
 
 
 _KB_STORE_DIR = Path("data/pinn-knowledge/store")
+_KB_SOURCES_DIR = Path("data/pinn-knowledge/sources")
 _KB_REGISTRY_DB = Path("data/pinn-knowledge/registry.db")
-_KB_UPLOADS_DIR = Path("data/pinn-knowledge/uploads")
 _KB_PAGE_SIZE = 10
 
 
@@ -1009,7 +1009,8 @@ def _kb_upload_section(store):
 
     st.markdown(
         "Upload a **Markdown** (`.md`) or **PDF** (`.pdf`) file to add it "
-        "to the knowledge base. Files are deduplicated by content hash."
+        "to the knowledge base. Files are deduplicated by content hash "
+        "and saved to `data/pinn-knowledge/sources/`."
     )
 
     uploaded = st.file_uploader(
@@ -1021,20 +1022,29 @@ def _kb_upload_section(store):
     if uploaded is None:
         return
 
-    # Save uploaded file to disk
-    _KB_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
-    upload_path = _KB_UPLOADS_DIR / uploaded.name
-    upload_path.write_bytes(uploaded.getvalue())
+    # Save uploaded file to sources directory
+    _KB_SOURCES_DIR.mkdir(parents=True, exist_ok=True)
+    source_path = _KB_SOURCES_DIR / uploaded.name
+    source_path.write_bytes(uploaded.getvalue())
 
-    col_ingest, col_info = st.columns([1, 2])
+    suffix = source_path.suffix.lower()
+    is_pdf = suffix == ".pdf"
+
+    # Options row
+    col_ingest, col_info, col_hybrid = st.columns([1, 1, 1])
     ingest_btn = col_ingest.button(
         ":material/play_arrow: Ingest",
         type="primary",
         use_container_width=True,
     )
-    col_info.caption(
-        f"**{uploaded.name}** — {uploaded.size / 1024:.1f} KB"
-    )
+    col_info.caption(f"**{uploaded.name}** — {uploaded.size / 1024:.1f} KB")
+
+    use_hybrid = False
+    if is_pdf:
+        use_hybrid = col_hybrid.checkbox(
+            "Hybrid PDF (LLM for complex pages)",
+            help="Uses LLM vision for pages with diagrams/graphs. Requires LLM API key.",
+        )
 
     if not ingest_btn:
         return
@@ -1045,7 +1055,7 @@ def _kb_upload_section(store):
 
     with FileRegistry(_KB_REGISTRY_DB) as registry:
         # Step 1: Dedup check
-        file_hash = FileRegistry.compute_hash(upload_path)
+        file_hash = FileRegistry.compute_hash(source_path)
         existing = registry.lookup(file_hash)
 
         if existing is not None:
@@ -1056,18 +1066,17 @@ def _kb_upload_section(store):
             )
             return
 
-        # Step 2: Detect format
+        # Step 2: Detect format and classify PDF pages
         progress.progress(20, text="Detecting format...")
-        suffix = upload_path.suffix.lower()
-        is_pdf = suffix == ".pdf"
+        llm_client = None
 
         if is_pdf:
             from rag.indexing.pdf import classify_pages, get_page_count
 
-            page_count = get_page_count(upload_path)
+            page_count = get_page_count(source_path)
             progress.progress(30, text=f"PDF detected: {page_count} pages. Classifying...")
 
-            classifications = classify_pages(upload_path)
+            classifications = classify_pages(source_path)
             complex_pages = [c for c in classifications if c["complexity"] == "complex"]
             simple_pages = [c for c in classifications if c["complexity"] == "simple"]
 
@@ -1077,11 +1086,29 @@ def _kb_upload_section(store):
             ))
 
             if complex_pages:
-                status_container.caption(
-                    f"Complex pages (will use pymupdf4llm fallback — "
-                    f"LLM vision requires API key): "
-                    f"{', '.join(str(c['page_num'] + 1) for c in complex_pages)}"
-                )
+                page_nums = ", ".join(str(c["page_num"] + 1) for c in complex_pages)
+                if use_hybrid:
+                    status_container.caption(
+                        f"Complex pages (LLM vision): {page_nums}"
+                    )
+                else:
+                    status_container.caption(
+                        f"Complex pages detected ({page_nums}) — "
+                        f"using pymupdf4llm for all. Enable hybrid mode for LLM vision."
+                    )
+
+            # Create LLM client for hybrid mode
+            if use_hybrid and complex_pages:
+                try:
+                    from llm_provider import LLMClient
+                    llm_client = LLMClient()
+                    progress.progress(45, text="LLM client ready for complex pages...")
+                except Exception as exc:
+                    status_container.warning(
+                        f"Could not initialize LLM client: {exc}. "
+                        f"Falling back to pymupdf4llm for all pages."
+                    )
+                    use_hybrid = False
         else:
             progress.progress(40, text="Markdown/text file detected")
 
@@ -1089,10 +1116,11 @@ def _kb_upload_section(store):
         progress.progress(50, text="Converting and indexing...")
 
         result = ingest_file(
-            upload_path,
+            source_path,
             store=store,
             registry=registry,
-            hybrid_pdf=False,  # No LLM client in dashboard context
+            llm_client=llm_client,
+            hybrid_pdf=use_hybrid,
         )
 
         # Step 4: Results
@@ -1102,7 +1130,10 @@ def _kb_upload_section(store):
             doc_meta = store.get_metadata(result.doc_id)
 
             with status_container.container(border=True):
-                st.markdown(f"### :material/check_circle: Indexed: {format_experiment_name(doc_meta.doc_name)}")
+                st.markdown(
+                    f"### :material/check_circle: Indexed: "
+                    f"{format_experiment_name(doc_meta.doc_name)}"
+                )
 
                 rc1, rc2, rc3 = st.columns(3)
                 rc1.metric("Document ID", result.doc_id)
@@ -1110,13 +1141,24 @@ def _kb_upload_section(store):
                 rc3.metric("Tokens", doc_meta.total_tokens)
 
                 st.caption(f"**Hash:** `{result.file_hash[:24]}...`")
+                st.caption(f"**Source:** `{source_path}`")
 
                 if is_pdf:
-                    converter_label = "pymupdf4llm (all pages)"
-                    st.caption(f"**Converter:** {converter_label}")
+                    # Show converter details from registry
+                    rec = registry.lookup(result.file_hash)
+                    if rec and rec.llm_pages:
+                        llm_pg = rec.llm_pages
+                        st.caption(
+                            f"**Converter:** hybrid (LLM pages: {llm_pg}, "
+                            f"rest: pymupdf4llm)"
+                        )
+                    else:
+                        st.caption("**Converter:** pymupdf4llm (all pages)")
 
                 if doc_meta.keywords:
-                    st.markdown(f"**Keywords:** {', '.join(f'`{k}`' for k in doc_meta.keywords)}")
+                    st.markdown(
+                        f"**Keywords:** {', '.join(f'`{k}`' for k in doc_meta.keywords)}"
+                    )
 
         elif result.status == "error":
             progress.progress(100, text="Error!")

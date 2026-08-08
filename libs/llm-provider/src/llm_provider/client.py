@@ -75,8 +75,20 @@ class LLMClient:
     # ----- Message preparation -----
 
     @staticmethod
-    def _to_messages(prompt: str | list[Message]) -> list[Message]:
+    def _to_messages(
+        prompt: str | list[Message],
+        images: list[str] | None = None,
+    ) -> list[Message]:
         if isinstance(prompt, str):
+            if images:
+                # Build multimodal content blocks (OpenAI vision format)
+                content: list[dict] = [{"type": "text", "text": prompt}]
+                for img_b64 in images:
+                    content.append({
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{img_b64}"},
+                    })
+                return [{"role": "user", "content": content}]
             return [{"role": "user", "content": prompt}]
         return prompt
 
@@ -88,6 +100,7 @@ class LLMClient:
         *,
         stream: bool = False,
         system: str | None = None,
+        images: list[str] | None = None,
     ) -> str:
         """Send a prompt and return the response text.
 
@@ -95,8 +108,9 @@ class LLMClient:
             prompt: A string or list of message dicts.
             stream: If True, print tokens as they arrive and return full text.
             system: Optional system message prepended to the conversation.
+            images: Optional list of base64-encoded PNG images for vision models.
         """
-        messages = self._to_messages(prompt)
+        messages = self._to_messages(prompt, images=images)
         if system:
             messages = [{"role": "system", "content": system}, *messages]
         params = self.config.to_litellm_params(stream=stream)
@@ -131,9 +145,10 @@ class LLMClient:
         *,
         stream: bool = False,
         system: str | None = None,
+        images: list[str] | None = None,
     ) -> str:
         """Async version of ask()."""
-        messages = self._to_messages(prompt)
+        messages = self._to_messages(prompt, images=images)
         if system:
             messages = [{"role": "system", "content": system}, *messages]
         params = self.config.to_litellm_params(stream=stream)
