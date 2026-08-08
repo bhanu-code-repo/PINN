@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from ..config import Settings
-from ..deps import get_settings, get_templates
+from ..deps import get_templates, get_user_manager
+from ..users import UserManager
 
 router = APIRouter(tags=["auth"])
 
@@ -29,13 +29,15 @@ def login(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    settings: Settings = Depends(get_settings),
+    user_mgr: UserManager = Depends(get_user_manager),
     templates: Jinja2Templates = Depends(get_templates),
 ):
-    if username == settings.admin_username and password == settings.admin_password:
+    user = user_mgr.authenticate(username, password)
+    if user is not None:
         request.session["authenticated"] = True
-        request.session["username"] = username
-        request.session["groups"] = list(settings.default_groups)
+        request.session["username"] = user.username
+        request.session["groups"] = user.groups
+        request.session["is_admin"] = user.is_admin
         return RedirectResponse(url=request.url_for("dashboard"), status_code=303)
 
     return templates.TemplateResponse(

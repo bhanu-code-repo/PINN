@@ -12,6 +12,8 @@ dependencies = [
     "rag",
     "llm-provider",
     "loguru>=0.7.0",
+    "bcrypt>=4.0.0",
+    "typer>=0.27.0",
 ]
 
 [tool.uv.sources]

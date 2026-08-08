@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from rag import CollectionManager, FileRegistry, KnowledgeStore, SearchEngine
 
 from .config import Settings
+from .users import UserManager
 
 
 def get_settings(request: Request) -> Settings:
@@ -38,3 +39,7 @@ def get_collection_manager(
 
 def get_registry(settings: Settings = Depends(get_settings)) -> FileRegistry:
     return FileRegistry(settings.registry_db)
+
+
+def get_user_manager(settings: Settings = Depends(get_settings)) -> UserManager:
+    return UserManager(settings.users_db)

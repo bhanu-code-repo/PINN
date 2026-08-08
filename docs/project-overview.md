@@ -79,10 +79,12 @@ A production-grade admin interface for managing the knowledge base:
 | **Bootstrap 5 Dashboard** | Stats overview, recent collections/documents, quick navigation |
 | **Collection Management** | Create, edit, delete collections; manage document membership; set access levels and allowed groups |
 | **Document Management** | Upload (md/txt/pdf), browse with pagination, BM25 search, detail view with tree structure, delete with full cleanup |
-| **Session Auth** | Cookie-based authentication with configurable admin credentials |
+| **User Management** | SQLite + bcrypt user accounts with CLI administration — create, list, reset passwords, delete users |
+| **Session Auth** | Cookie-based authentication against bcrypt-hashed credentials with group-based sessions |
 | **Jinja2 Templates** | Server-rendered pages adapted from Portal admin template — responsive, accessible |
+| **Admin CLI** | `pinn-admin serve/create-user/list-users/reset-password/delete-user` — Typer-based with Rich output |
 
-Access control at the collection level: departments can't see each other's restricted documents. Public collections are visible to everyone.
+Access control at the collection level: departments can't see each other's restricted documents. Public collections are visible to everyone. Users are managed via the `pinn-admin` CLI with bcrypt-hashed passwords — never stored in plaintext.
 
 ### PINN Knowledge Base
 
@@ -177,9 +179,9 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Experiments | 11 |
 | Learning notebooks | 12 |
 | Analysis notebooks | 4 |
-| Automated tests | 324 (319 fast + 5 convergence) |
+| Automated tests | 339 (334 fast + 5 convergence) |
 | Development phases | 29 |
-| Documentation files | 6 |
+| Documentation files | 7 |
 | CI/CD | GitHub Actions (lint + test) |
 
 ---
@@ -234,6 +236,13 @@ uv run train-harmonic train -e 500 --no-show
 # Launch the dashboard
 uv run streamlit run dashboard.py
 
+# Start the admin server (creates default admin user on first run)
+uv run pinn-admin serve
+
+# Manage users via CLI
+uv run pinn-admin create-user alice --admin --groups "research,engineering"
+uv run pinn-admin list-users
+
 # Start the learning curriculum
 jupyter lab learn/
 ```
@@ -262,6 +271,7 @@ jupyter lab learn/
 | Hybrid PDF, SQLite registry, ingestion pipeline + notebooks 13-14 | Done |
 | Knowledge Base upload, pagination, and delete | Done |
 | FastAPI admin server with collections + access control | Done |
+| User management with bcrypt + CLI administration | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

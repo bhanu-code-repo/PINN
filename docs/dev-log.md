@@ -642,6 +642,38 @@ structure as the index instead of vector embeddings — no chunking artifacts.
   test path added, `B008` ruff ignore for FastAPI `Depends()` pattern.
 - 319 total fast tests, all passing.
 
+#### User management with bcrypt + CLI administration
+
+- **`api/users.py`** — `UserManager` class: SQLite-backed user accounts with
+  bcrypt password hashing (via `bcrypt` library directly — passlib dropped due
+  to bcrypt 5.x incompatibility). CRUD: `create_user`, `get_user`, `authenticate`,
+  `list_users`, `update_password`, `update_user`, `delete_user`, `count`,
+  `ensure_admin`. Context manager support.
+- **`api/cli.py`** — Typer CLI with 5 subcommands:
+  - `serve` — start the server (`--host`, `--port`, `--reload`)
+  - `create-user <username>` — interactive password prompt with confirmation,
+    `--admin` flag, `--groups` comma-separated list
+  - `list-users` — Rich table output (username, admin, groups, created)
+  - `reset-password <username>` — interactive password prompt
+  - `delete-user <username>` — with `--force` to skip confirmation
+- **`api/config.py`** — added `users_db` path to Settings.
+- **`api/deps.py`** — added `get_user_manager` dependency.
+- **`api/routes/auth.py`** — login now uses `UserManager.authenticate()` instead
+  of hardcoded credentials. Session stores user's actual groups and admin status.
+- **`api/app.py`** — calls `UserManager.ensure_admin()` on startup to bootstrap
+  default admin if none exist.
+- **Dependency change**: replaced `passlib[bcrypt]>=1.7.4` with `bcrypt>=4.0.0`
+  (passlib has a known incompatibility with bcrypt 5.x — `ValueError: password
+  cannot be longer than 72 bytes` during internal wrap-bug detection).
+- **`docs/admin-server.md`** — full admin server documentation: quick start,
+  CLI reference, auth flow, access control, configuration, database schema, pages.
+- 20 new tests in `test_users.py`: create (basic, groups+admin, duplicate),
+  authenticate (valid, wrong pw, unknown user), password hashing (stored format,
+  verify round-trip), update password (auth change, nonexistent), update user
+  (groups, promote, demote), delete (success, nonexistent), list/count
+  (empty, multiple), ensure_admin (create, promote, noop).
+- 339 total fast tests (319 + 20), all passing.
+
 ---
 
 ## Roadmap / Deferred

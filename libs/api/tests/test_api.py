@@ -13,6 +13,7 @@ def settings(tmp_path):
         knowledge_sources_dir=tmp_path / "sources",
         registry_db=tmp_path / "registry.db",
         collections_db=tmp_path / "collections.db",
+        users_db=tmp_path / "users.db",
         secret_key="test-secret",
         admin_username="admin",
         admin_password="pass123",

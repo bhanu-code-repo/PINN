@@ -28,7 +28,10 @@ class Settings:
     # Session secret (override in production)
     secret_key: str = "pinn-admin-dev-key-change-in-production"
 
-    # Default admin credentials (override in production)
+    # User database
+    users_db: Path = _PROJECT_ROOT / "data" / "pinn-knowledge" / "users.db"
+
+    # Default admin credentials (used for initial admin bootstrap)
     admin_username: str = "admin"
     admin_password: str = "admin"
 

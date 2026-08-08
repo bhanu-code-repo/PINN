@@ -11,6 +11,7 @@ from loguru import logger
 from starlette.middleware.sessions import SessionMiddleware
 
 from .config import Settings
+from .users import UserManager
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 
@@ -19,6 +20,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     if settings is None:
         settings = Settings()
+
+    # Ensure at least one admin user exists
+    with UserManager(settings.users_db) as mgr:
+        mgr.ensure_admin(settings.admin_username, settings.admin_password)
 
     app = FastAPI(
         title="PINN Knowledge Admin",
