@@ -951,11 +951,26 @@ def _confirm_delete_dialog(doc_id: str, doc_name: str):
     if col_yes.button(
         ":material/delete: Delete", type="primary", use_container_width=True
     ):
-        from rag import KnowledgeStore
+        from rag import FileRegistry, KnowledgeStore
 
         store = KnowledgeStore.load(_KB_STORE_DIR)
         store.remove_document(doc_id)
         store.save()
+
+        # Also remove from file registry so re-upload works
+        if _KB_REGISTRY_DB.exists():
+            with FileRegistry(_KB_REGISTRY_DB) as registry:
+                for rec in registry.list_all():
+                    if rec.doc_id == doc_id:
+                        registry.unregister(rec.file_hash)
+                        break
+
+        # Remove source file if it exists
+        for ext in (".md", ".txt", ".pdf"):
+            source = _KB_SOURCES_DIR / f"{doc_id}{ext}"
+            if source.exists():
+                source.unlink()
+
         st.session_state["kb_deleted"] = doc_id
         st.rerun()
     if col_no.button("Cancel", use_container_width=True):
