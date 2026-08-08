@@ -1,0 +1,61 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Edit' if collection else 'New' }} Collection{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <h1 class="app-page-title">{{ 'Edit' if collection else 'New' }} Collection</h1>
+
+            {% include 'includes/flash.html' %}
+
+            <div class="row">
+                <div class="col-12 col-lg-8">
+                    <div class="app-card app-card-settings shadow-sm p-4">
+                        <div class="app-card-body">
+                            <form method="post" action="{{ url_for('edit_collection', collection_id=collection.collection_id) if collection else url_for('create_collection') }}">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Collection Name</label>
+                                    <input type="text" class="form-control" id="name" name="name"
+                                           value="{{ collection.name if collection else '' }}" required
+                                           {{ 'readonly' if collection else '' }}>
+                                    {% if not collection %}
+                                    <div class="form-text">Used to generate the collection ID (cannot be changed later).</div>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3">{{ collection.description if collection else '' }}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="access" class="form-label">Access Level</label>
+                                    <select class="form-select" id="access" name="access">
+                                        <option value="public" {{ 'selected' if not collection or collection.access == 'public' else '' }}>Public — visible to everyone</option>
+                                        <option value="restricted" {{ 'selected' if collection and collection.access == 'restricted' else '' }}>Restricted — only allowed groups</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="allowed_groups" class="form-label">Allowed Groups</label>
+                                    <input type="text" class="form-control" id="allowed_groups" name="allowed_groups"
+                                           value="{{ collection.allowed_groups | join(', ') if collection and collection.allowed_groups else '' }}"
+                                           placeholder="e.g. research, engineering">
+                                    <div class="form-text">Comma-separated group names. Only applies when access is "Restricted".</div>
+                                </div>
+                                <div class="d-flex">
+                                    <button type="submit" class="btn app-btn-primary">
+                                        {{ 'Save Changes' if collection else 'Create Collection' }}
+                                    </button>
+                                    <a href="{{ url_for('list_collections') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

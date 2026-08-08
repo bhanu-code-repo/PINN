@@ -1,0 +1,77 @@
+<div class="mb-3">
+    <h5><i class="fas fa-comment-dots me-2"></i>RAG Chat Response</h5>
+    <p class="text-muted small">Query: "{{ query }}"</p>
+</div>
+
+<!-- LLM Response -->
+<div class="app-card shadow-sm p-4 mb-3">
+    <h6 class="mb-3"><i class="fas fa-robot me-2"></i>LLM Response</h6>
+    {% if llm_error %}
+    <div class="alert alert-warning mb-0">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>LLM Error:</strong> {{ llm_error }}
+        <p class="small mt-2 mb-0">Make sure the LLM provider is configured. Set <code>OLLAMA_API_KEY</code> in your <code>.env</code> file or start a local Ollama instance.</p>
+    </div>
+    {% elif llm_response %}
+    <div class="chat-response">{{ llm_response | markdown }}</div>
+    {% else %}
+    <p class="text-muted mb-0">No response generated (empty context or no LLM available).</p>
+    {% endif %}
+</div>
+
+<!-- Retrieved Context (collapsible) -->
+<div class="app-card shadow-sm p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-database me-2"></i>Retrieved Context ({{ context_parts | length }} documents)</h6>
+        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#chat-context-details" role="button" aria-expanded="false">
+            <i class="fas fa-eye me-1"></i>Show/Hide Context
+        </a>
+    </div>
+    <div class="collapse mt-3" id="chat-context-details">
+        {% if context_parts %}
+        {% for part in context_parts %}
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <strong>
+                    <span class="badge bg-secondary me-1">#{{ loop.index }}</span>
+                    {{ part.doc_name }}
+                </strong>
+                <small class="text-muted">{{ part.text | length }} chars</small>
+            </div>
+            <div class="chat-context">
+                {{ part.text[:2000] | markdown }}
+                {% if part.text | length > 2000 %}
+                <p class="text-muted small mt-2">... ({{ part.text | length - 2000 }} more characters)</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted mb-0">No context was retrieved.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="app-card shadow-sm p-3">
+    <h6 class="mb-2"><i class="fas fa-chart-bar me-1"></i> Pipeline Summary</h6>
+    <div class="row text-center">
+        <div class="col">
+            <div class="fw-bold">{{ context_parts | length }}</div>
+            <small class="text-muted">Documents Retrieved</small>
+        </div>
+        <div class="col">
+            {% set total_chars = context_parts | map(attribute='text') | map('length') | sum %}
+            <div class="fw-bold">~{{ (total_chars / 4) | int }}</div>
+            <small class="text-muted">Context Tokens</small>
+        </div>
+        <div class="col">
+            <div class="fw-bold">{{ llm_response | length if llm_response else 0 }}</div>
+            <small class="text-muted">Response Chars</small>
+        </div>
+        <div class="col">
+            <div class="fw-bold">{% if llm_error %}<span class="text-danger">Error</span>{% elif llm_response %}<span class="text-success">OK</span>{% else %}<span class="text-muted">N/A</span>{% endif %}</div>
+            <small class="text-muted">LLM Status</small>
+        </div>
+    </div>
+</div>

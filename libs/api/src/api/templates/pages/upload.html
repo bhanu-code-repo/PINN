@@ -1,0 +1,66 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Upload Document{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <h1 class="app-page-title">Upload Document</h1>
+
+            {% include 'includes/flash.html' %}
+
+            <div class="row">
+                <div class="col-12 col-lg-8">
+                    <div class="app-card app-card-settings shadow-sm p-4">
+                        <div class="app-card-body">
+                            <form method="post" action="{{ url_for('upload_document') }}" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="file" class="form-label">File</label>
+                                    <input type="file" class="form-control" id="file" name="file"
+                                           accept=".md,.txt,.pdf" required>
+                                    <div class="form-text">Accepted formats: Markdown (.md), Text (.txt), PDF (.pdf)</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="collection_id" class="form-label">Collection (optional)</label>
+                                    <select class="form-select" id="collection_id" name="collection_id">
+                                        <option value="">No collection</option>
+                                        {% for c in collections %}
+                                        <option value="{{ c.collection_id }}">{{ c.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="hybrid_pdf" name="hybrid_pdf" value="1">
+                                    <label class="form-check-label" for="hybrid_pdf">
+                                        Use hybrid PDF conversion (LLM vision for complex pages)
+                                    </label>
+                                    <div class="form-text">Costs more but produces better results for PDFs with diagrams, graphs, or complex layouts.</div>
+                                </div>
+                                <button type="submit" class="btn app-btn-primary">
+                                    <i class="fas fa-upload me-1"></i> Upload & Index
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-4">
+                    <div class="app-card shadow-sm p-4">
+                        <h5><i class="fas fa-info-circle me-1"></i> Upload Tips</h5>
+                        <ul class="mb-0">
+                            <li>Markdown files are indexed directly</li>
+                            <li>PDFs are converted to Markdown first</li>
+                            <li>Enable hybrid PDF for pages with graphs or diagrams</li>
+                            <li>Duplicate files (same SHA-256 hash) are automatically detected</li>
+                            <li>Files are saved to the sources directory for re-indexing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

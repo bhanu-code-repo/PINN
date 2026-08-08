@@ -20,6 +20,7 @@ members = [
     "libs/llm-provider",
     "libs/lang-pinn",
     "libs/rag",
+    "libs/api",
 ]
 
 [project.scripts]
@@ -35,6 +36,7 @@ train-ns-inverse = "experiments.navier_stokes_inverse.train:app"
 train-cylinder = "experiments.cylinder_wake.train:app"
 train-parametric-tg = "experiments.parametric_taylor_green.train:app"
 lang-pinn = "lang_pinn.cli:app"
+pinn-admin = "api.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8.15,<0.9.0"]
@@ -54,7 +56,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "libs/pinn/tests", "libs/llm-provider/tests", "libs/lang-pinn/tests", "libs/rag/tests"]
+testpaths = ["tests", "libs/pinn/tests", "libs/llm-provider/tests", "libs/lang-pinn/tests", "libs/rag/tests", "libs/api/tests"]
 addopts = "-m 'not slow' -q"
 markers = [
     "slow: long-running convergence tests (run with: uv run pytest -m slow)",
@@ -77,4 +79,5 @@ select = [
 ]
 ignore = [
     "E501", # long lines in docstrings/tables are fine; formatter handles code
+    "B008", # Depends() in function defaults is standard FastAPI pattern
 ]

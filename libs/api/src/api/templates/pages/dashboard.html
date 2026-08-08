@@ -1,0 +1,155 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <h1 class="app-page-title">Dashboard</h1>
+
+            {% include 'includes/flash.html' %}
+
+            <div class="row g-4 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="app-card app-card-stat shadow-sm h-100">
+                        <div class="app-card-body p-3 p-lg-4">
+                            <h4 class="stats-type mb-1">Collections</h4>
+                            <div class="stats-figure">{{ stats.collections }}</div>
+                            <div class="stats-meta">Total</div>
+                        </div>
+                        <a class="app-card-link-mask" href="{{ url_for('list_collections') }}"></a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="app-card app-card-stat shadow-sm h-100">
+                        <div class="app-card-body p-3 p-lg-4">
+                            <h4 class="stats-type mb-1">Documents</h4>
+                            <div class="stats-figure">{{ stats.documents }}</div>
+                            <div class="stats-meta">Indexed</div>
+                        </div>
+                        <a class="app-card-link-mask" href="{{ url_for('list_documents') }}"></a>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="app-card app-card-stat shadow-sm h-100">
+                        <div class="app-card-body p-3 p-lg-4">
+                            <h4 class="stats-type mb-1">Files</h4>
+                            <div class="stats-figure">{{ stats.files }}</div>
+                            <div class="stats-meta">Registered</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="app-card app-card-stat shadow-sm h-100">
+                        <div class="app-card-body p-3 p-lg-4">
+                            <h4 class="stats-type mb-1">Access</h4>
+                            <div class="stats-figure">{{ stats.restricted }}</div>
+                            <div class="stats-meta">Restricted collections</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-lg-6">
+                    <div class="app-card app-card-basic d-flex flex-column align-items-start shadow-sm h-100">
+                        <div class="app-card-header p-3 border-bottom-0">
+                            <div class="row align-items-center gx-3">
+                                <div class="col-auto">
+                                    <div class="app-icon-holder"><i class="fas fa-layer-group"></i></div>
+                                </div>
+                                <div class="col-auto">
+                                    <h4 class="app-card-title">Recent Collections</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-card-body px-4 w-100">
+                            {% if recent_collections %}
+                            <div class="table-responsive">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="meta">Name</th>
+                                            <th class="meta">Access</th>
+                                            <th class="meta stat-cell">Docs</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for c in recent_collections %}
+                                        <tr>
+                                            <td><a href="{{ url_for('view_collection', collection_id=c.collection_id) }}">{{ c.name }}</a></td>
+                                            <td>
+                                                {% if c.access == 'public' %}
+                                                <span class="badge bg-success">Public</span>
+                                                {% else %}
+                                                <span class="badge bg-warning text-dark">Restricted</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="stat-cell">{{ c.doc_count }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No collections yet. <a href="{{ url_for('create_collection_page') }}">Create one</a>.</p>
+                            {% endif %}
+                        </div>
+                        <div class="app-card-footer p-4 mt-auto">
+                            <a class="btn app-btn-secondary" href="{{ url_for('create_collection_page') }}">New Collection</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                    <div class="app-card app-card-basic d-flex flex-column align-items-start shadow-sm h-100">
+                        <div class="app-card-header p-3 border-bottom-0">
+                            <div class="row align-items-center gx-3">
+                                <div class="col-auto">
+                                    <div class="app-icon-holder"><i class="fas fa-file-alt"></i></div>
+                                </div>
+                                <div class="col-auto">
+                                    <h4 class="app-card-title">Recent Documents</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-card-body px-4 w-100">
+                            {% if recent_documents %}
+                            <div class="table-responsive">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="meta">Name</th>
+                                            <th class="meta stat-cell">Nodes</th>
+                                            <th class="meta stat-cell">Tokens</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for d in recent_documents %}
+                                        <tr>
+                                            <td><a href="{{ url_for('view_document', doc_id=d.doc_id) }}">{{ d.doc_name }}</a></td>
+                                            <td class="stat-cell">{{ d.node_count }}</td>
+                                            <td class="stat-cell">{{ d.total_tokens }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No documents yet. <a href="{{ url_for('upload_page') }}">Upload one</a>.</p>
+                            {% endif %}
+                        </div>
+                        <div class="app-card-footer p-4 mt-auto">
+                            <a class="btn app-btn-secondary" href="{{ url_for('upload_page') }}">Upload Document</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

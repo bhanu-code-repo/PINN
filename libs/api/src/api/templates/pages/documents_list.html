@@ -1,0 +1,112 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Documents{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <div class="row align-items-center mb-4">
+                <div class="col-auto">
+                    <h1 class="app-page-title mb-0">Documents</h1>
+                </div>
+                <div class="col-auto ms-auto">
+                    <a href="{{ url_for('upload_page') }}" class="btn app-btn-primary">
+                        <i class="fas fa-upload me-1"></i> Upload
+                    </a>
+                </div>
+            </div>
+
+            {% include 'includes/flash.html' %}
+
+            <!-- Search bar -->
+            <div class="app-card shadow-sm p-3 mb-4">
+                <form method="get" action="{{ url_for('search_documents') }}" class="row g-2 align-items-center">
+                    <div class="col">
+                        <input type="text" class="form-control" name="q" placeholder="Search documents..." value="{{ query or '' }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn app-btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if documents %}
+            <div class="table-responsive">
+                <div class="app-card shadow-sm">
+                    <table class="table app-table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Keywords</th>
+                                <th class="text-center">Nodes</th>
+                                <th class="text-center">Tokens</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in documents %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('view_document', doc_id=d.doc_id) }}">{{ d.doc_name }}</a>
+                                </td>
+                                <td><span class="badge bg-info text-dark">{{ d.pde_type or 'general' }}</span></td>
+                                <td>
+                                    {% for kw in d.keywords[:3] %}
+                                    <span class="badge bg-light text-dark">{{ kw }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td class="text-center">{{ d.node_count }}</td>
+                                <td class="text-center">{{ d.total_tokens }}</td>
+                                <td>
+                                    <form method="post" action="{{ url_for('delete_document', doc_id=d.doc_id) }}" class="d-inline"
+                                          onsubmit="return confirm('Delete {{ d.doc_name }}? This cannot be undone.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+                        <a class="page-link" href="?page={{ page - 1 }}{% if query %}&q={{ query }}{% endif %}">Previous</a>
+                    </li>
+                    {% for p in range(1, total_pages + 1) %}
+                    <li class="page-item {{ 'active' if p == page else '' }}">
+                        <a class="page-link" href="?page={{ p }}{% if query %}&q={{ query }}{% endif %}">{{ p }}</a>
+                    </li>
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+                        <a class="page-link" href="?page={{ page + 1 }}{% if query %}&q={{ query }}{% endif %}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <div class="app-card shadow-sm p-4 text-center">
+                {% if query %}
+                <p class="text-muted">No documents matching "{{ query }}".</p>
+                {% else %}
+                <p class="text-muted mb-3">No documents yet.</p>
+                <a href="{{ url_for('upload_page') }}" class="btn app-btn-primary">Upload Your First Document</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

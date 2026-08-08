@@ -1,0 +1,7 @@
+{% if request.session.get('flash') %}
+{% set flash = request.session.pop('flash') %}
+<div class="alert alert-{{ flash.category }} alert-dismissible fade show mb-4" role="alert">
+    {{ flash.message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}

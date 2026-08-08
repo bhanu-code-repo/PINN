@@ -69,6 +69,24 @@ A vectorless RAG system that uses document structure as the index instead of vec
 
 No vector database, no embeddings, no chunking artifacts. The document structure *is* the index.
 
+### FastAPI Admin Server
+
+A production-grade admin interface for managing the knowledge base:
+
+| Component | What It Does |
+|-----------|-------------|
+| **Collection Manager** | SQLite-backed CRUD with access control — public or restricted collections with group-based permissions |
+| **Bootstrap 5 Dashboard** | Stats overview, recent collections/documents, quick navigation |
+| **Collection Management** | Create, edit, delete collections; manage document membership; set access levels and allowed groups |
+| **Document Management** | Upload (md/txt/pdf), browse with pagination, BM25 search, detail view with tree structure, delete with full cleanup |
+| **User Management** | SQLite + bcrypt user accounts with CLI administration — create, list, reset passwords, delete users |
+| **RAG Tester** | Interactive retrieval testing — BM25 search with node tree preview, context viewer with token stats, chat interface with markdown-rendered LLM responses |
+| **Session Auth** | Cookie-based authentication against bcrypt-hashed credentials with group-based sessions |
+| **Jinja2 Templates** | Server-rendered pages adapted from Portal admin template — responsive, accessible |
+| **Admin CLI** | `pinn-admin serve/create-user/list-users/reset-password/delete-user` — Typer-based with Rich output |
+
+Access control at the collection level: departments can't see each other's restricted documents. Public collections are visible to everyone. Users are managed via the `pinn-admin` CLI with bcrypt-hashed passwords — never stored in plaintext.
+
 ### PINN Knowledge Base
 
 A curated collection of 20 PDE-specific knowledge entries covering equations (Burgers, heat, wave, Schrödinger, Navier-Stokes, etc.), techniques (Ansatz, collocation, curriculum training, loss weighting), and common failure modes (spectral bias, training stability). The PINN Agent retrieves relevant entries via BM25 search (no LLM cost) and augments both rule-based and LLM-assisted recommendations with literature-backed guidance.
@@ -162,9 +180,9 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Experiments | 11 |
 | Learning notebooks | 12 |
 | Analysis notebooks | 4 |
-| Automated tests | 234 (229 fast + 5 convergence) |
-| Development phases | 24 |
-| Documentation files | 6 |
+| Automated tests | 356 (351 fast + 5 convergence) |
+| Development phases | 29 |
+| Documentation files | 7 |
 | CI/CD | GitHub Actions (lint + test) |
 
 ---
@@ -190,7 +208,8 @@ PINN/
 ├── libs/pinn/          Core library (network, trainer, RAR, feedback, W&B, utils)
 ├── libs/llm-provider/  LLM abstraction layer (Ollama, Anthropic, OpenAI via LiteLLM)
 ├── libs/lang-pinn/     Lang-PINN multi-agent framework (PDE/PINN/Code agents, orchestrator)
-├── libs/rag/           Structure-based RAG (markdown/PDF indexing, BM25 + LLM retrieval)
+├── libs/rag/           Structure-based RAG (markdown/PDF indexing, BM25 + LLM retrieval, collections)
+├── libs/api/           FastAPI admin server (Jinja2 UI, collection management, access control)
 ├── data/pinn-knowledge/ PINN knowledge base (20 curated entries + pre-built index)
 ├── experiments/        11 self-contained experiment CLIs
 ├── learn/              14-notebook progressive curriculum
@@ -217,6 +236,13 @@ uv run train-harmonic train -e 500 --no-show
 
 # Launch the dashboard
 uv run streamlit run dashboard.py
+
+# Start the admin server (creates default admin user on first run)
+uv run pinn-admin serve
+
+# Manage users via CLI
+uv run pinn-admin create-user alice --admin --groups "research,engineering"
+uv run pinn-admin list-users
 
 # Start the learning curriculum
 jupyter lab learn/
@@ -245,6 +271,8 @@ jupyter lab learn/
 | Knowledge Base dashboard page (search, browse, filter) | Done |
 | Hybrid PDF, SQLite registry, ingestion pipeline + notebooks 13-14 | Done |
 | Knowledge Base upload, pagination, and delete | Done |
+| FastAPI admin server with collections + access control | Done |
+| User management with bcrypt + CLI administration | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

@@ -1,0 +1,63 @@
+<div class="mb-3">
+    <h5><i class="fas fa-search me-2"></i>BM25 Search Results</h5>
+    <p class="text-muted small">Query: "{{ query }}" &mdash; {{ results | length }} match(es), top-K={{ top_k }}</p>
+</div>
+
+{% if results %}
+{% for r in results %}
+<div class="app-card shadow-sm p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h6 class="mb-1">
+                <span class="badge bg-secondary me-2">#{{ loop.index }}</span>
+                <a href="/documents/{{ r.doc_id }}">{{ r.doc_name }}</a>
+            </h6>
+            {% if r.pde_type %}
+            <span class="badge bg-info text-dark me-1">{{ r.pde_type }}</span>
+            {% endif %}
+            <span class="text-muted small">{{ r.node_count }} nodes &middot; {{ r.total_tokens }} tokens</span>
+        </div>
+    </div>
+
+    {% if r.techniques %}
+    <div class="mt-2">
+        <small class="text-muted">Techniques:</small>
+        {% for t in r.techniques %}
+        <span class="badge bg-light text-dark">{{ t }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if r.keywords %}
+    <div class="mt-1">
+        <small class="text-muted">Keywords:</small>
+        {% for kw in r.keywords %}
+        <span class="badge bg-light text-dark">{{ kw }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if r.node_titles %}
+    <div class="mt-2">
+        <a class="small text-primary" data-bs-toggle="collapse" href="#tree-{{ loop.index }}" role="button" aria-expanded="false">
+            <i class="fas fa-sitemap me-1"></i>Show node tree
+        </a>
+        <div class="collapse mt-2" id="tree-{{ loop.index }}">
+            <div class="border rounded p-2" style="background: #f8f9fa;">
+                {% for nt in r.node_titles %}
+                <div class="node-tree-item" style="padding-left: {{ nt.depth * 16 }}px;">
+                    <i class="fas fa-chevron-right fa-xs text-muted me-1"></i>
+                    <span class="text-muted">[{{ nt.node_id }}]</span> {{ nt.title }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="app-card shadow-sm p-4 text-center">
+    <p class="text-muted mb-0">No matching documents found for "{{ query }}".</p>
+</div>
+{% endif %}

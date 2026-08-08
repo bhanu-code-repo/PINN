@@ -601,6 +601,108 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 - Browse/Search moved to tabbed layout: "Browse & Search" + "Upload Document".
 - 282 total fast tests, all passing.
 
+### Phase 29 — FastAPI admin server with collections and access control
+**Branch:** `feature/fastapi-admin`
+
+- **`libs/api/`** — new workspace member: FastAPI + Jinja2 admin server.
+  - `api/app.py` — application factory with session middleware, static files,
+    Jinja2 templates, modular route registration.
+  - `api/config.py` — `Settings` dataclass: store paths, session secret,
+    default admin credentials, user groups.
+  - `api/deps.py` — FastAPI dependency injection: settings, templates, store,
+    search engine, collection manager, file registry.
+  - `api/cli.py` — `pinn-admin` CLI entry point via uvicorn.
+- **Collection-based access control** (`libs/rag/src/rag/collections.py`):
+  - `CollectionManager` — SQLite-backed CRUD for collections with access control.
+  - Schema: `collections` table (name, description, access: public/restricted,
+    allowed_groups) + `collection_documents` junction table with cascade delete.
+  - Group-filtered listing: public collections visible to all, restricted only
+    to members of allowed groups.
+  - `get_accessible_doc_ids(user_groups)` — returns doc IDs user can access.
+- **Bootstrap 5 admin UI** — adapted from Portal template:
+  - Base layouts: `base.html` (sidebar + header) and `base-auth.html` (login).
+  - Includes: header (sidebar nav, search, user dropdown), footer, flash messages,
+    recursive tree node rendering.
+  - Pages: dashboard (stats cards, recent collections/documents), collections
+    (list, create, edit, view with doc management), documents (list with
+    pagination, detail with tree view, search), upload (file + collection
+    selector + hybrid PDF toggle), settings, login.
+- **Routes**: 4 route modules (auth, dashboard, collections, documents).
+  - Session-based auth with admin credentials.
+  - Flash messages for action feedback.
+  - Full CRUD: collections (create, edit, delete), documents (upload, view,
+    search, delete with registry + source cleanup).
+  - Document-to-collection membership management (add/remove).
+- Dependencies: `fastapi`, `uvicorn[standard]`, `jinja2`, `python-multipart`,
+  `rag`, `llm-provider`, `loguru`.
+- **37 new tests**: collections (18 — CRUD, doc mapping, access control filtering,
+  cascade delete) + API (19 — auth flow, dashboard, collections CRUD, document
+  list/upload/search, unsupported format rejection).
+- `pyproject.toml` — workspace member registered, `pinn-admin` CLI script,
+  test path added, `B008` ruff ignore for FastAPI `Depends()` pattern.
+- 319 total fast tests, all passing.
+
+#### User management with bcrypt + CLI administration
+
+- **`api/users.py`** — `UserManager` class: SQLite-backed user accounts with
+  bcrypt password hashing (via `bcrypt` library directly — passlib dropped due
+  to bcrypt 5.x incompatibility). CRUD: `create_user`, `get_user`, `authenticate`,
+  `list_users`, `update_password`, `update_user`, `delete_user`, `count`,
+  `ensure_admin`. Context manager support.
+- **`api/cli.py`** — Typer CLI with 5 subcommands:
+  - `serve` — start the server (`--host`, `--port`, `--reload`)
+  - `create-user <username>` — interactive password prompt with confirmation,
+    `--admin` flag, `--groups` comma-separated list
+  - `list-users` — Rich table output (username, admin, groups, created)
+  - `reset-password <username>` — interactive password prompt
+  - `delete-user <username>` — with `--force` to skip confirmation
+- **`api/config.py`** — added `users_db` path to Settings.
+- **`api/deps.py`** — added `get_user_manager` dependency.
+- **`api/routes/auth.py`** — login now uses `UserManager.authenticate()` instead
+  of hardcoded credentials. Session stores user's actual groups and admin status.
+- **`api/app.py`** — calls `UserManager.ensure_admin()` on startup to bootstrap
+  default admin if none exist.
+- **Dependency change**: replaced `passlib[bcrypt]>=1.7.4` with `bcrypt>=4.0.0`
+  (passlib has a known incompatibility with bcrypt 5.x — `ValueError: password
+  cannot be longer than 72 bytes` during internal wrap-bug detection).
+- **`docs/admin-server.md`** — full admin server documentation: quick start,
+  CLI reference, auth flow, access control, configuration, database schema, pages.
+- 20 new tests in `test_users.py`: create (basic, groups+admin, duplicate),
+  authenticate (valid, wrong pw, unknown user), password hashing (stored format,
+  verify round-trip), update password (auth change, nonexistent), update user
+  (groups, promote, demote), delete (success, nonexistent), list/count
+  (empty, multiple), ensure_admin (create, promote, noop).
+- 339 total fast tests (319 + 20), all passing.
+
+#### RAG Retrieval Tester and Chat Interface
+
+- **`api/routes/rag_tester.py`** — new route module with 4 endpoints:
+  - `GET /rag-tester` — main page with query panel, top-K slider, action buttons
+  - `POST /rag-tester/search` — BM25 search returning partial HTML with ranked
+    results, metadata badges, expandable node trees
+  - `POST /rag-tester/retrieve` — full context retrieval with formatted document
+    text, character/token stats
+  - `POST /rag-tester/chat` — RAG-augmented chat: retrieves context via BM25,
+    builds prompt with knowledge base context, sends to LLM, renders response
+    with collapsible context panel and pipeline summary
+- **Markdown rendering** — added `markdown` library + Jinja2 `|markdown` filter.
+  LLM responses and retrieved context rendered as formatted HTML with code blocks,
+  tables, and proper typography.
+- **Templates**: 1 page template + 3 partial templates (HTMX-style fetch pattern):
+  - `pages/rag_tester.html` — query panel with suggestion chips, results container,
+    CSS for rendered markdown (code blocks, tables, lists)
+  - `partials/rag_search_results.html` — BM25 results with node tree collapsibles
+  - `partials/rag_context.html` — formatted context with character/token summary
+  - `partials/rag_chat_response.html` — LLM response + collapsible context + stats
+- **Sidebar navigation** updated with flask icon for RAG Tester.
+- **`api/app.py`** — registered rag_tester router, added `markdown` Jinja2 filter
+  with `fenced_code`, `tables`, `codehilite` extensions.
+- 12 new tests in `test_rag_tester.py`: page rendering, auth redirect, BM25 search
+  (finds docs, no results, node tree), context retrieval (returns text, stats,
+  empty query), chat (renders response, shows context, handles LLM error).
+- Dependencies: `markdown>=3.6` added to `libs/api/pyproject.toml`.
+- 351 total fast tests (339 + 12), all passing.
+
 ---
 
 ## Roadmap / Deferred

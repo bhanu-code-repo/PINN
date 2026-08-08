@@ -27,6 +27,7 @@ File ingestion with deduplication::
     result = ingest_file("paper.pdf", store=store, registry=registry)
 """
 
+from .collections import Collection, CollectionManager
 from .indexing import MarkdownIndexer
 from .ingest import IngestResult, ingest_file
 from .models import DocumentMetadata, DocumentTree, RetrievalResult, TreeNode
@@ -36,6 +37,8 @@ from .search import SearchEngine
 from .store import KnowledgeStore
 
 __all__ = [
+    "Collection",
+    "CollectionManager",
     "DocumentMetadata",
     "DocumentTree",
     "FileRecord",
