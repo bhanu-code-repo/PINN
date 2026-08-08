@@ -244,6 +244,7 @@ jupyter lab learn/
 | PINN knowledge base + RAG-enhanced recommendations | Done |
 | Knowledge Base dashboard page (search, browse, filter) | Done |
 | Hybrid PDF, SQLite registry, ingestion pipeline + notebooks 13-14 | Done |
+| Knowledge Base upload, pagination, and delete | Done |
 | Breather soliton family (research problem) | Planned |
 | ONNX/FastAPI model serving | Planned |
 

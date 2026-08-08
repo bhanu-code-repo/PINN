@@ -927,20 +927,55 @@ def page_lang_pinn():
     )
 
 
-def page_knowledge_base():
-    """Browse and search the PINN knowledge base."""
+_KB_STORE_DIR = Path("data/pinn-knowledge/store")
+_KB_REGISTRY_DB = Path("data/pinn-knowledge/registry.db")
+_KB_UPLOADS_DIR = Path("data/pinn-knowledge/uploads")
+_KB_PAGE_SIZE = 10
+
+
+def _load_kb():
+    """Load the knowledge store and search engine (cached per session)."""
     from rag import KnowledgeStore, SearchEngine
 
-    store_dir = Path("data/pinn-knowledge/store")
-    if not (store_dir / "manifest.json").exists():
+    store = KnowledgeStore.load(_KB_STORE_DIR)
+    engine = SearchEngine.from_store(store)
+    return store, engine
+
+
+@st.dialog("Confirm Delete", width="small")
+def _confirm_delete_dialog(doc_id: str, doc_name: str):
+    """Confirmation dialog for deleting a knowledge entry."""
+    st.markdown(f"Delete **{format_experiment_name(doc_name)}** (`{doc_id}`)?")
+    st.caption("This removes the document from the knowledge store permanently.")
+    col_yes, col_no = st.columns(2)
+    if col_yes.button(
+        ":material/delete: Delete", type="primary", use_container_width=True
+    ):
+        from rag import KnowledgeStore
+
+        store = KnowledgeStore.load(_KB_STORE_DIR)
+        store.remove_document(doc_id)
+        store.save()
+        st.session_state["kb_deleted"] = doc_id
+        st.rerun()
+    if col_no.button("Cancel", use_container_width=True):
+        st.rerun()
+
+
+def page_knowledge_base():
+    """Browse, search, upload, and manage the PINN knowledge base."""
+    if not (_KB_STORE_DIR / "manifest.json").exists():
         st.warning(
             "Knowledge store not found. Build it first:\n\n"
             "```bash\nuv run python data/pinn-knowledge/build_index.py\n```"
         )
         return
 
-    store = KnowledgeStore.load(store_dir)
-    engine = SearchEngine.from_store(store)
+    # Show delete success message
+    if "kb_deleted" in st.session_state:
+        st.success(f"Deleted document `{st.session_state.pop('kb_deleted')}`")
+
+    store, engine = _load_kb()
     docs = store.list_documents()
 
     # --- Overview metrics ---
@@ -955,9 +990,144 @@ def page_knowledge_base():
     c3.metric("Total Tokens", f"{total_tokens:,}")
     c4.metric("Techniques", len(all_techniques))
 
+    # --- Tabs: Browse / Upload ---
+    tab_browse, tab_upload = st.tabs([
+        ":material/menu_book: Browse & Search",
+        ":material/upload_file: Upload Document",
+    ])
+
+    with tab_upload:
+        _kb_upload_section(store)
+
+    with tab_browse:
+        _kb_browse_section(store, engine, docs, all_keywords)
+
+
+def _kb_upload_section(store):
+    """File upload with progress tracking."""
+    from rag import FileRegistry, ingest_file
+
+    st.markdown(
+        "Upload a **Markdown** (`.md`) or **PDF** (`.pdf`) file to add it "
+        "to the knowledge base. Files are deduplicated by content hash."
+    )
+
+    uploaded = st.file_uploader(
+        "Choose a file",
+        type=["md", "markdown", "txt", "pdf"],
+        help="Supported formats: Markdown (.md), Text (.txt), PDF (.pdf)",
+    )
+
+    if uploaded is None:
+        return
+
+    # Save uploaded file to disk
+    _KB_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    upload_path = _KB_UPLOADS_DIR / uploaded.name
+    upload_path.write_bytes(uploaded.getvalue())
+
+    col_ingest, col_info = st.columns([1, 2])
+    ingest_btn = col_ingest.button(
+        ":material/play_arrow: Ingest",
+        type="primary",
+        use_container_width=True,
+    )
+    col_info.caption(
+        f"**{uploaded.name}** — {uploaded.size / 1024:.1f} KB"
+    )
+
+    if not ingest_btn:
+        return
+
+    # Progress tracking
+    progress = st.progress(0, text="Checking for duplicates...")
+    status_container = st.container()
+
+    with FileRegistry(_KB_REGISTRY_DB) as registry:
+        # Step 1: Dedup check
+        file_hash = FileRegistry.compute_hash(upload_path)
+        existing = registry.lookup(file_hash)
+
+        if existing is not None:
+            progress.progress(100, text="Already indexed!")
+            status_container.info(
+                f"This file is already indexed as `{existing.doc_id}` "
+                f"(hash: `{file_hash[:16]}...`). Content unchanged."
+            )
+            return
+
+        # Step 2: Detect format
+        progress.progress(20, text="Detecting format...")
+        suffix = upload_path.suffix.lower()
+        is_pdf = suffix == ".pdf"
+
+        if is_pdf:
+            from rag.indexing.pdf import classify_pages, get_page_count
+
+            page_count = get_page_count(upload_path)
+            progress.progress(30, text=f"PDF detected: {page_count} pages. Classifying...")
+
+            classifications = classify_pages(upload_path)
+            complex_pages = [c for c in classifications if c["complexity"] == "complex"]
+            simple_pages = [c for c in classifications if c["complexity"] == "simple"]
+
+            progress.progress(40, text=(
+                f"Classification: {len(simple_pages)} simple, "
+                f"{len(complex_pages)} complex pages"
+            ))
+
+            if complex_pages:
+                status_container.caption(
+                    f"Complex pages (will use pymupdf4llm fallback — "
+                    f"LLM vision requires API key): "
+                    f"{', '.join(str(c['page_num'] + 1) for c in complex_pages)}"
+                )
+        else:
+            progress.progress(40, text="Markdown/text file detected")
+
+        # Step 3: Index
+        progress.progress(50, text="Converting and indexing...")
+
+        result = ingest_file(
+            upload_path,
+            store=store,
+            registry=registry,
+            hybrid_pdf=False,  # No LLM client in dashboard context
+        )
+
+        # Step 4: Results
+        if result.status == "indexed":
+            progress.progress(100, text="Indexing complete!")
+
+            doc_meta = store.get_metadata(result.doc_id)
+
+            with status_container.container(border=True):
+                st.markdown(f"### :material/check_circle: Indexed: {format_experiment_name(doc_meta.doc_name)}")
+
+                rc1, rc2, rc3 = st.columns(3)
+                rc1.metric("Document ID", result.doc_id)
+                rc2.metric("Nodes", doc_meta.node_count)
+                rc3.metric("Tokens", doc_meta.total_tokens)
+
+                st.caption(f"**Hash:** `{result.file_hash[:24]}...`")
+
+                if is_pdf:
+                    converter_label = "pymupdf4llm (all pages)"
+                    st.caption(f"**Converter:** {converter_label}")
+
+                if doc_meta.keywords:
+                    st.markdown(f"**Keywords:** {', '.join(f'`{k}`' for k in doc_meta.keywords)}")
+
+        elif result.status == "error":
+            progress.progress(100, text="Error!")
+            status_container.error(f"Ingestion failed: {result.message}")
+
+
+def _kb_browse_section(store, engine, docs, all_keywords):
+    """Browse and search with pagination."""
     st.markdown("---")
 
-    # --- Search ---
+    # --- Search and filter ---
     col_search, col_filter = st.columns([2, 1])
     query = col_search.text_input(
         ":material/search: Search knowledge base",
@@ -970,23 +1140,50 @@ def page_knowledge_base():
 
     # Determine which docs to show
     if query.strip():
-        matched_ids = engine.search(query, top_k=20)
+        matched_ids = engine.search(query, top_k=50)
         if not matched_ids:
             st.info("No results found. Try different search terms.")
             return
         filtered = [d for d in docs if d.doc_id in matched_ids]
-        # Preserve BM25 ranking
         id_order = {doc_id: i for i, doc_id in enumerate(matched_ids)}
         filtered.sort(key=lambda d: id_order.get(d.doc_id, 999))
-        st.caption(f"Found **{len(filtered)}** results for \"{query}\"")
     else:
         filtered = docs
 
     if keyword_filter != "All":
         filtered = [d for d in filtered if keyword_filter in d.keywords]
 
+    total = len(filtered)
+    if total == 0:
+        st.info("No documents match the current filters.")
+        return
+
+    # --- Pagination ---
+    total_pages = max(1, (total + _KB_PAGE_SIZE - 1) // _KB_PAGE_SIZE)
+
+    if total > _KB_PAGE_SIZE:
+        col_info, col_pager = st.columns([2, 1])
+        col_info.caption(f"Showing **{total}** documents")
+        current_page = col_pager.number_input(
+            "Page",
+            min_value=1,
+            max_value=total_pages,
+            value=1,
+            key="kb_page",
+        )
+    else:
+        current_page = 1
+        st.caption(f"Showing **{total}** documents")
+
+    start = (current_page - 1) * _KB_PAGE_SIZE
+    end = min(start + _KB_PAGE_SIZE, total)
+    page_docs = filtered[start:end]
+
+    if total > _KB_PAGE_SIZE:
+        st.caption(f"Page {current_page} of {total_pages} ({start + 1}–{end} of {total})")
+
     # --- Document cards ---
-    for meta in filtered:
+    for meta in page_docs:
         pde_label = meta.pde_type.split(":")[0].strip() if meta.pde_type else "General"
         title = format_experiment_name(meta.doc_name)
 
@@ -995,11 +1192,18 @@ def page_knowledge_base():
             expanded=bool(query.strip()),
         ):
             # Metadata row
-            mc1, mc2, mc3 = st.columns(3)
+            mc1, mc2, mc3, mc4 = st.columns([3, 2, 2, 1])
             mc1.caption(f"**Nodes:** {meta.node_count}  |  **Tokens:** {meta.total_tokens}")
             mc2.caption(f"**ID:** `{meta.doc_id}`")
             indexed_date = meta.indexed_at.split("T")[0] if meta.indexed_at else "?"
             mc3.caption(f"**Indexed:** {indexed_date}")
+
+            if mc4.button(
+                ":material/delete:",
+                key=f"del_{meta.doc_id}",
+                help="Delete this entry",
+            ):
+                _confirm_delete_dialog(meta.doc_id, meta.doc_name)
 
             # PDE type
             if meta.pde_type:
