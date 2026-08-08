@@ -37,8 +37,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Store settings on app state
     app.state.settings = settings
 
-    # Templates
+    # Templates with markdown filter
     templates = Jinja2Templates(directory=str(_PACKAGE_DIR / "templates"))
+
+    import markdown as _md
+    from markupsafe import Markup
+
+    def _md_filter(text: str) -> Markup:
+        """Convert markdown text to HTML."""
+        html = _md.markdown(text, extensions=["fenced_code", "tables", "codehilite"])
+        return Markup(html)
+
+    templates.env.filters["markdown"] = _md_filter
     app.state.templates = templates
 
     # Static files
@@ -46,11 +56,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # Register routes
-    from .routes import auth, collections, dashboard, documents
+    from .routes import auth, collections, dashboard, documents, rag_tester
 
     app.include_router(dashboard.router)
     app.include_router(collections.router)
     app.include_router(documents.router)
+    app.include_router(rag_tester.router)
     app.include_router(auth.router)
 
     logger.info("PINN Knowledge Admin started (store={})", settings.knowledge_store_dir)

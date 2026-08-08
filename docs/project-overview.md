@@ -80,6 +80,7 @@ A production-grade admin interface for managing the knowledge base:
 | **Collection Management** | Create, edit, delete collections; manage document membership; set access levels and allowed groups |
 | **Document Management** | Upload (md/txt/pdf), browse with pagination, BM25 search, detail view with tree structure, delete with full cleanup |
 | **User Management** | SQLite + bcrypt user accounts with CLI administration — create, list, reset passwords, delete users |
+| **RAG Tester** | Interactive retrieval testing — BM25 search with node tree preview, context viewer with token stats, chat interface with markdown-rendered LLM responses |
 | **Session Auth** | Cookie-based authentication against bcrypt-hashed credentials with group-based sessions |
 | **Jinja2 Templates** | Server-rendered pages adapted from Portal admin template — responsive, accessible |
 | **Admin CLI** | `pinn-admin serve/create-user/list-users/reset-password/delete-user` — Typer-based with Rich output |
@@ -179,7 +180,7 @@ Each notebook is self-contained, runnable, and produces its own visualisations. 
 | Experiments | 11 |
 | Learning notebooks | 12 |
 | Analysis notebooks | 4 |
-| Automated tests | 339 (334 fast + 5 convergence) |
+| Automated tests | 356 (351 fast + 5 convergence) |
 | Development phases | 29 |
 | Documentation files | 7 |
 | CI/CD | GitHub Actions (lint + test) |

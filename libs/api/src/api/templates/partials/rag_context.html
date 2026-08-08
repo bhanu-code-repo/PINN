@@ -1,0 +1,49 @@
+<div class="mb-3">
+    <h5><i class="fas fa-file-alt me-2"></i>Retrieved Context</h5>
+    <p class="text-muted small">Query: "{{ query }}" &mdash; {{ context_parts | length }} document(s) retrieved</p>
+    <p class="text-muted small">This is the full text that would be sent to an LLM as context.</p>
+</div>
+
+{% if context_parts %}
+{% for part in context_parts %}
+<div class="app-card shadow-sm p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="mb-0">
+            <span class="badge bg-secondary me-2">#{{ loop.index }}</span>
+            <a href="/documents/{{ part.doc_id }}">{{ part.doc_name }}</a>
+        </h6>
+        {% if part.pde_type %}
+        <span class="badge bg-info text-dark">{{ part.pde_type }}</span>
+        {% endif %}
+    </div>
+    <div class="context-block">
+        {{ part.text | markdown }}
+    </div>
+    <div class="text-end">
+        <small class="text-muted">{{ part.text | length }} characters</small>
+    </div>
+</div>
+{% endfor %}
+
+<div class="app-card shadow-sm p-3 mb-3 border-primary">
+    <h6 class="mb-2"><i class="fas fa-ruler-combined me-1"></i> Context Summary</h6>
+    <div class="row text-center">
+        <div class="col">
+            <div class="fw-bold">{{ context_parts | length }}</div>
+            <small class="text-muted">Documents</small>
+        </div>
+        <div class="col">
+            <div class="fw-bold">{{ context_parts | map(attribute='text') | map('length') | sum }}</div>
+            <small class="text-muted">Characters</small>
+        </div>
+        <div class="col">
+            <div class="fw-bold">~{{ (context_parts | map(attribute='text') | map('length') | sum / 4) | int }}</div>
+            <small class="text-muted">Est. Tokens</small>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="app-card shadow-sm p-4 text-center">
+    <p class="text-muted mb-0">No context retrieved for "{{ query }}".</p>
+</div>
+{% endif %}

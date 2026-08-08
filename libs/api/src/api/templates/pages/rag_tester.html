@@ -1,0 +1,217 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}RAG Tester{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="app-page-title mb-1">RAG Retrieval Tester</h1>
+                    <p class="text-muted mb-0">Test retrieval quality and chat with your knowledge base ({{ doc_count }} documents indexed)</p>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Left: Query Panel -->
+                <div class="col-lg-4 mb-4">
+                    <div class="app-card shadow-sm p-4" style="position: sticky; top: 80px;">
+                        <h5 class="mb-3"><i class="fas fa-search me-2"></i>Query</h5>
+                        <div class="mb-3">
+                            <textarea id="rag-query" class="form-control" rows="4" placeholder="Enter your question about PINNs, PDEs, training techniques..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Top-K Documents</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="range" class="form-range flex-grow-1" id="top-k-slider" min="1" max="10" value="5">
+                                <span class="badge bg-primary" id="top-k-value">5</span>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn app-btn-primary" id="btn-search" onclick="runSearch()">
+                                <i class="fas fa-search me-1"></i> BM25 Search
+                            </button>
+                            <button class="btn btn-outline-secondary" id="btn-retrieve" onclick="runRetrieve()">
+                                <i class="fas fa-file-alt me-1"></i> Retrieve Context
+                            </button>
+                            <button class="btn btn-outline-dark" id="btn-chat" onclick="runChat()">
+                                <i class="fas fa-comment-dots me-1"></i> Chat with RAG
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <p class="small text-muted mb-1"><strong>BM25 Search:</strong> Ranked document matches by keyword relevance</p>
+                            <p class="small text-muted mb-1"><strong>Retrieve Context:</strong> Full text that would be sent to an LLM</p>
+                            <p class="small text-muted mb-0"><strong>Chat with RAG:</strong> Send context + question to LLM and see the response</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Results Panel -->
+                <div class="col-lg-8">
+                    <!-- Loading indicator -->
+                    <div id="loading" class="d-none text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted mt-2" id="loading-text">Searching...</p>
+                    </div>
+
+                    <!-- Results container -->
+                    <div id="results-container">
+                        <div class="app-card shadow-sm p-4 text-center">
+                            <i class="fas fa-flask fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Ready to Test</h5>
+                            <p class="text-muted">Enter a query and click one of the action buttons to test the RAG pipeline.</p>
+                            <div class="mt-3">
+                                <p class="small text-muted mb-1">Try queries like:</p>
+                                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="setQuery('How to handle shock waves in Burgers equation?')">Burgers shocks</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="setQuery('spectral bias high frequency')">Spectral bias</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="setQuery('Navier-Stokes training stability')">NS stability</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="setQuery('adaptive loss weighting techniques')">Loss weighting</button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="setQuery('periodic boundary conditions')">Periodic BCs</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+
+<style>
+    .context-block {
+        background: #f8f9fa;
+        border-left: 3px solid #0d6efd;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+        border-radius: 0 4px 4px 0;
+        font-size: 0.9rem;
+    }
+    .context-block pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin: 0;
+        font-size: 0.85rem;
+    }
+    .node-tree-item {
+        padding: 2px 0;
+        font-size: 0.85rem;
+    }
+    .chat-response {
+        background: #e8f4fd;
+        border-left: 3px solid #0d6efd;
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        line-height: 1.6;
+    }
+    .chat-response h1, .chat-response h2, .chat-response h3,
+    .chat-response h4, .chat-response h5, .chat-response h6 {
+        margin-top: 0.8em;
+        margin-bottom: 0.4em;
+    }
+    .chat-response p { margin-bottom: 0.5em; }
+    .chat-response pre {
+        background: #f1f3f5;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .chat-response code {
+        background: #f1f3f5;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 0.9em;
+    }
+    .chat-response pre code { background: none; padding: 0; }
+    .chat-response ul, .chat-response ol { padding-left: 1.5em; }
+    .chat-response table { width: 100%; border-collapse: collapse; margin: 0.5em 0; }
+    .chat-response th, .chat-response td { border: 1px solid #dee2e6; padding: 6px 10px; }
+    .chat-response th { background: #f1f3f5; }
+    .chat-context {
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+        padding: 12px 16px;
+        border-radius: 0 4px 4px 0;
+        font-size: 0.85rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .context-block h3, .context-block h4, .context-block h5 {
+        font-size: 1em;
+        margin-top: 0.6em;
+        margin-bottom: 0.3em;
+    }
+    .context-block p { margin-bottom: 0.4em; }
+</style>
+
+<script>
+    const slider = document.getElementById('top-k-slider');
+    const sliderValue = document.getElementById('top-k-value');
+    slider.addEventListener('input', () => { sliderValue.textContent = slider.value; });
+
+    function setQuery(text) {
+        document.getElementById('rag-query').value = text;
+    }
+
+    function showLoading(text) {
+        document.getElementById('loading').classList.remove('d-none');
+        document.getElementById('loading-text').textContent = text;
+        document.getElementById('results-container').innerHTML = '';
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').classList.add('d-none');
+    }
+
+    function getFormData() {
+        const fd = new FormData();
+        fd.append('query', document.getElementById('rag-query').value);
+        fd.append('top_k', slider.value);
+        return fd;
+    }
+
+    async function runSearch() {
+        const query = document.getElementById('rag-query').value.trim();
+        if (!query) { alert('Please enter a query.'); return; }
+        showLoading('Running BM25 search...');
+        try {
+            const resp = await fetch('{{ url_for("rag_search") }}', { method: 'POST', body: getFormData() });
+            document.getElementById('results-container').innerHTML = await resp.text();
+        } catch (e) {
+            document.getElementById('results-container').innerHTML = '<div class="alert alert-danger">Search failed: ' + e.message + '</div>';
+        }
+        hideLoading();
+    }
+
+    async function runRetrieve() {
+        const query = document.getElementById('rag-query').value.trim();
+        if (!query) { alert('Please enter a query.'); return; }
+        showLoading('Retrieving context...');
+        try {
+            const resp = await fetch('{{ url_for("rag_retrieve") }}', { method: 'POST', body: getFormData() });
+            document.getElementById('results-container').innerHTML = await resp.text();
+        } catch (e) {
+            document.getElementById('results-container').innerHTML = '<div class="alert alert-danger">Retrieve failed: ' + e.message + '</div>';
+        }
+        hideLoading();
+    }
+
+    async function runChat() {
+        const query = document.getElementById('rag-query').value.trim();
+        if (!query) { alert('Please enter a query.'); return; }
+        showLoading('Retrieving context and generating response...');
+        try {
+            const resp = await fetch('{{ url_for("rag_chat") }}', { method: 'POST', body: getFormData() });
+            document.getElementById('results-container').innerHTML = await resp.text();
+        } catch (e) {
+            document.getElementById('results-container').innerHTML = '<div class="alert alert-danger">Chat failed: ' + e.message + '</div>';
+        }
+        hideLoading();
+    }
+</script>
+{% endblock %}

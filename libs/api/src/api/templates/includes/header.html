@@ -77,6 +77,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'rag_tester' else '' }}" href="{{ url_for('rag_tester_page') }}">
+                            <span class="nav-icon"><i class="fas fa-flask"></i></span>
+                            <span class="nav-link-text">RAG Tester</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {{ 'active' if active_page == 'settings' else '' }}" href="{{ url_for('settings_page') }}">
                             <span class="nav-icon"><i class="fas fa-cog"></i></span>
                             <span class="nav-link-text">Settings</span>

@@ -674,6 +674,35 @@ structure as the index instead of vector embeddings — no chunking artifacts.
   (empty, multiple), ensure_admin (create, promote, noop).
 - 339 total fast tests (319 + 20), all passing.
 
+#### RAG Retrieval Tester and Chat Interface
+
+- **`api/routes/rag_tester.py`** — new route module with 4 endpoints:
+  - `GET /rag-tester` — main page with query panel, top-K slider, action buttons
+  - `POST /rag-tester/search` — BM25 search returning partial HTML with ranked
+    results, metadata badges, expandable node trees
+  - `POST /rag-tester/retrieve` — full context retrieval with formatted document
+    text, character/token stats
+  - `POST /rag-tester/chat` — RAG-augmented chat: retrieves context via BM25,
+    builds prompt with knowledge base context, sends to LLM, renders response
+    with collapsible context panel and pipeline summary
+- **Markdown rendering** — added `markdown` library + Jinja2 `|markdown` filter.
+  LLM responses and retrieved context rendered as formatted HTML with code blocks,
+  tables, and proper typography.
+- **Templates**: 1 page template + 3 partial templates (HTMX-style fetch pattern):
+  - `pages/rag_tester.html` — query panel with suggestion chips, results container,
+    CSS for rendered markdown (code blocks, tables, lists)
+  - `partials/rag_search_results.html` — BM25 results with node tree collapsibles
+  - `partials/rag_context.html` — formatted context with character/token summary
+  - `partials/rag_chat_response.html` — LLM response + collapsible context + stats
+- **Sidebar navigation** updated with flask icon for RAG Tester.
+- **`api/app.py`** — registered rag_tester router, added `markdown` Jinja2 filter
+  with `fenced_code`, `tables`, `codehilite` extensions.
+- 12 new tests in `test_rag_tester.py`: page rendering, auth redirect, BM25 search
+  (finds docs, no results, node tree), context retrieval (returns text, stats,
+  empty query), chat (renders response, shows context, handles LLM error).
+- Dependencies: `markdown>=3.6` added to `libs/api/pyproject.toml`.
+- 351 total fast tests (339 + 12), all passing.
+
 ---
 
 ## Roadmap / Deferred

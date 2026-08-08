@@ -203,4 +203,30 @@ CREATE TABLE collection_documents (
 | Document Detail | `/documents/{id}` | Full document with tree structure |
 | Upload | `/upload` | File upload (md/txt/pdf) with collection selector |
 | Search | `/search?q=...` | BM25 keyword search |
+| RAG Tester | `/rag-tester` | Interactive retrieval testing and chat |
 | Settings | `/settings` | Server configuration overview |
+
+---
+
+## RAG Tester
+
+The RAG Tester page (`/rag-tester`) provides an interactive interface for
+testing retrieval quality and chatting with the knowledge base.
+
+### Three Modes
+
+| Mode | What It Does |
+|------|-------------|
+| **BM25 Search** | Ranked document matches by keyword relevance. Shows metadata, techniques, keywords, and expandable node tree for each match. |
+| **Retrieve Context** | Full text that would be sent to an LLM as context. Shows formatted document content with character/token counts. |
+| **Chat with RAG** | Sends retrieved context + question to the LLM and displays the response. Context is shown in a collapsible panel alongside the response. |
+
+### Features
+
+- **Query suggestions**: click preset queries to quickly test common topics
+- **Top-K slider**: control how many documents are retrieved (1-10)
+- **Node tree preview**: expandable tree showing document structure for each BM25 hit
+- **Context stats**: character count, estimated token count per document
+- **Markdown rendering**: LLM responses and context are rendered as formatted HTML
+- **LLM error handling**: graceful fallback with configuration hints if the LLM provider is unavailable
+- **Pipeline summary**: document count, context tokens, response length, LLM status
