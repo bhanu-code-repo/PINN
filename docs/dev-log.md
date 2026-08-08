@@ -601,6 +601,47 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 - Browse/Search moved to tabbed layout: "Browse & Search" + "Upload Document".
 - 282 total fast tests, all passing.
 
+### Phase 29 — FastAPI admin server with collections and access control
+**Branch:** `feature/fastapi-admin`
+
+- **`libs/api/`** — new workspace member: FastAPI + Jinja2 admin server.
+  - `api/app.py` — application factory with session middleware, static files,
+    Jinja2 templates, modular route registration.
+  - `api/config.py` — `Settings` dataclass: store paths, session secret,
+    default admin credentials, user groups.
+  - `api/deps.py` — FastAPI dependency injection: settings, templates, store,
+    search engine, collection manager, file registry.
+  - `api/cli.py` — `pinn-admin` CLI entry point via uvicorn.
+- **Collection-based access control** (`libs/rag/src/rag/collections.py`):
+  - `CollectionManager` — SQLite-backed CRUD for collections with access control.
+  - Schema: `collections` table (name, description, access: public/restricted,
+    allowed_groups) + `collection_documents` junction table with cascade delete.
+  - Group-filtered listing: public collections visible to all, restricted only
+    to members of allowed groups.
+  - `get_accessible_doc_ids(user_groups)` — returns doc IDs user can access.
+- **Bootstrap 5 admin UI** — adapted from Portal template:
+  - Base layouts: `base.html` (sidebar + header) and `base-auth.html` (login).
+  - Includes: header (sidebar nav, search, user dropdown), footer, flash messages,
+    recursive tree node rendering.
+  - Pages: dashboard (stats cards, recent collections/documents), collections
+    (list, create, edit, view with doc management), documents (list with
+    pagination, detail with tree view, search), upload (file + collection
+    selector + hybrid PDF toggle), settings, login.
+- **Routes**: 4 route modules (auth, dashboard, collections, documents).
+  - Session-based auth with admin credentials.
+  - Flash messages for action feedback.
+  - Full CRUD: collections (create, edit, delete), documents (upload, view,
+    search, delete with registry + source cleanup).
+  - Document-to-collection membership management (add/remove).
+- Dependencies: `fastapi`, `uvicorn[standard]`, `jinja2`, `python-multipart`,
+  `rag`, `llm-provider`, `loguru`.
+- **37 new tests**: collections (18 — CRUD, doc mapping, access control filtering,
+  cascade delete) + API (19 — auth flow, dashboard, collections CRUD, document
+  list/upload/search, unsupported format rejection).
+- `pyproject.toml` — workspace member registered, `pinn-admin` CLI script,
+  test path added, `B008` ruff ignore for FastAPI `Depends()` pattern.
+- 319 total fast tests, all passing.
+
 ---
 
 ## Roadmap / Deferred

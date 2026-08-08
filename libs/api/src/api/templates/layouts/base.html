@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>PINN Admin - {% block title %}{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="PINN Knowledge Base Administration" name="description">
+
+    <!-- FontAwesome -->
+    <script defer src="{{ url_for('static', path='assets/plugins/fontawesome/js/all.min.js') }}"></script>
+
+    <!-- App CSS -->
+    <link href="{{ url_for('static', path='assets/css/portal.css') }}" id="theme-style" rel="stylesheet">
+
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="app">
+    {% include 'includes/header.html' %}
+
+    {% block content %}{% endblock %}
+
+    {% include 'includes/scripts.html' %}
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

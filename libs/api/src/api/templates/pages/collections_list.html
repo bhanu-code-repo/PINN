@@ -1,0 +1,81 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Collections{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <div class="row align-items-center mb-4">
+                <div class="col-auto">
+                    <h1 class="app-page-title mb-0">Collections</h1>
+                </div>
+                <div class="col-auto ms-auto">
+                    <a href="{{ url_for('create_collection_page') }}" class="btn app-btn-primary">
+                        <i class="fas fa-plus me-1"></i> New Collection
+                    </a>
+                </div>
+            </div>
+
+            {% include 'includes/flash.html' %}
+
+            {% if collections %}
+            <div class="row g-4">
+                {% for c in collections %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <div class="app-card app-card-basic shadow-sm h-100">
+                        <div class="app-card-header p-3 border-bottom-0">
+                            <div class="row align-items-center gx-3">
+                                <div class="col-auto">
+                                    <div class="app-icon-holder">
+                                        {% if c.access == 'restricted' %}
+                                        <i class="fas fa-lock"></i>
+                                        {% else %}
+                                        <i class="fas fa-globe"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <h4 class="app-card-title">{{ c.name }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-card-body px-4">
+                            <div class="mb-2">{{ c.description or 'No description' }}</div>
+                            <div class="mb-2">
+                                {% if c.access == 'public' %}
+                                <span class="badge bg-success">Public</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Restricted</span>
+                                {% endif %}
+                                <span class="badge bg-secondary ms-1">{{ c.doc_count }} docs</span>
+                            </div>
+                            {% if c.allowed_groups %}
+                            <div class="mb-1">
+                                <small class="text-muted">Groups: {{ c.allowed_groups | join(', ') }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="app-card-footer p-4 mt-auto">
+                            <a class="btn app-btn-secondary me-2" href="{{ url_for('view_collection', collection_id=c.collection_id) }}">View</a>
+                            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('edit_collection_page', collection_id=c.collection_id) }}">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="app-card shadow-sm p-4 text-center">
+                <p class="text-muted mb-3">No collections yet.</p>
+                <a href="{{ url_for('create_collection_page') }}" class="btn app-btn-primary">Create Your First Collection</a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

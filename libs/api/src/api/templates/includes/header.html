@@ -1,0 +1,102 @@
+<header class="app-header fixed-top">
+    <div class="app-header-inner">
+        <div class="container-fluid py-2">
+            <div class="app-header-content">
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-auto">
+                        <a class="sidepanel-toggler d-inline-block d-xl-none" href="#" id="sidepanel-toggler">
+                            <svg height="30" role="img" viewBox="0 0 30 30" width="30" xmlns="http://www.w3.org/2000/svg">
+                                <title>Menu</title>
+                                <path d="M4 7h22M4 15h22M4 23h22" stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2"></path>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="search-mobile-trigger d-sm-none col">
+                        <i class="search-mobile-trigger-icon fas fa-search"></i>
+                    </div>
+                    <div class="app-search-box col">
+                        <form class="app-search-form" action="{{ url_for('search_documents') }}" method="get">
+                            <input class="form-control search-input" name="q" placeholder="Search knowledge base..." type="text" value="{{ request.query_params.get('q', '') }}">
+                            <button class="btn search-btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+                        </form>
+                    </div>
+
+                    <div class="app-utilities col-auto">
+                        <div class="app-utility-item app-user-dropdown dropdown">
+                            <a aria-expanded="false" class="dropdown-toggle" data-bs-toggle="dropdown" href="#" id="user-dropdown-toggle" role="button">
+                                <img alt="user profile" src="{{ url_for('static', path='assets/images/user.png') }}">
+                            </a>
+                            <ul aria-labelledby="user-dropdown-toggle" class="dropdown-menu">
+                                <li><span class="dropdown-item-text fw-bold">{{ request.session.get('username', 'Guest') }}</span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('settings_page') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Log Out</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="app-sidepanel" id="app-sidepanel">
+        <div class="sidepanel-drop" id="sidepanel-drop"></div>
+        <div class="sidepanel-inner d-flex flex-column">
+            <a class="sidepanel-close d-xl-none" href="#" id="sidepanel-close">&times;</a>
+            <div class="app-branding">
+                <a class="app-logo" href="{{ url_for('dashboard') }}">
+                    <img alt="logo" class="logo-icon me-2" src="{{ url_for('static', path='assets/images/app-logo.svg') }}">
+                    <span class="logo-text">PINN Admin</span>
+                </a>
+            </div>
+
+            <nav class="app-nav app-nav-main flex-grow-1" id="app-nav-main">
+                <ul class="app-menu list-unstyled accordion" id="menu-accordion">
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}">
+                            <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'collections' else '' }}" href="{{ url_for('list_collections') }}">
+                            <span class="nav-icon"><i class="fas fa-layer-group"></i></span>
+                            <span class="nav-link-text">Collections</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'documents' else '' }}" href="{{ url_for('list_documents') }}">
+                            <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+                            <span class="nav-link-text">Documents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'upload' else '' }}" href="{{ url_for('upload_page') }}">
+                            <span class="nav-icon"><i class="fas fa-upload"></i></span>
+                            <span class="nav-link-text">Upload</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if active_page == 'settings' else '' }}" href="{{ url_for('settings_page') }}">
+                            <span class="nav-icon"><i class="fas fa-cog"></i></span>
+                            <span class="nav-link-text">Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="app-sidepanel-footer">
+                <nav class="app-nav app-nav-footer">
+                    <ul class="app-menu footer-menu list-unstyled">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('settings_page') }}">
+                                <span class="nav-icon"><i class="fas fa-cog"></i></span>
+                                <span class="nav-link-text">Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>

@@ -1,0 +1,93 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ doc.doc_name }}{% endblock %}
+
+{% block content %}
+<div class="app-wrapper">
+    <div class="app-content pt-3 p-md-3 p-lg-4">
+        <div class="container-xl">
+            <div class="row align-items-center mb-4">
+                <div class="col-auto">
+                    <h1 class="app-page-title mb-0">{{ doc.doc_name }}</h1>
+                </div>
+                <div class="col-auto ms-auto">
+                    <a href="{{ url_for('list_documents') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </a>
+                    <form method="post" action="{{ url_for('delete_document', doc_id=doc.doc_id) }}" class="d-inline"
+                          onsubmit="return confirm('Delete {{ doc.doc_name }}?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% include 'includes/flash.html' %}
+
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="app-card shadow-sm p-4 h-100">
+                        <h5>Metadata</h5>
+                        <div class="mb-2"><strong>ID:</strong> <code>{{ doc.doc_id }}</code></div>
+                        {% if doc.pde_type %}
+                        <div class="mb-2"><strong>PDE Type:</strong> {{ doc.pde_type }}</div>
+                        {% endif %}
+                        {% if doc.spatial_dim is not none %}
+                        <div class="mb-2"><strong>Spatial Dim:</strong> {{ doc.spatial_dim }}</div>
+                        {% endif %}
+                        <div class="mb-2"><strong>Nodes:</strong> {{ doc.node_count }}</div>
+                        <div class="mb-2"><strong>Tokens:</strong> {{ doc.total_tokens }}</div>
+                        <div class="mb-2"><strong>Indexed:</strong> {{ doc.indexed_at[:10] if doc.indexed_at else 'Unknown' }}</div>
+
+                        {% if doc.keywords %}
+                        <div class="mt-3">
+                            <strong>Keywords:</strong><br>
+                            {% for kw in doc.keywords %}
+                            <span class="badge bg-light text-dark me-1 mb-1">{{ kw }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if doc.techniques %}
+                        <div class="mt-2">
+                            <strong>Techniques:</strong><br>
+                            {% for t in doc.techniques %}
+                            <span class="badge bg-info text-dark me-1 mb-1">{{ t }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        {% if collections %}
+                        <div class="mt-3">
+                            <strong>Collections:</strong><br>
+                            {% for c in collections %}
+                            <a href="{{ url_for('view_collection', collection_id=c) }}" class="badge bg-secondary text-decoration-none me-1">{{ c }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-8">
+                    <div class="app-card shadow-sm p-4 h-100">
+                        <h5>Document Structure</h5>
+                        {% if tree %}
+                        <div class="tree-view">
+                            {% for node in tree.root_nodes %}
+                            {% include 'includes/tree_node.html' %}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">Structure not available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {% include 'includes/footer.html' %}
+</div>
+{% endblock %}

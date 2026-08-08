@@ -1,0 +1,15 @@
+<div class="tree-node ms-{{ (node.level - 1) * 3 }} mb-2">
+    <div class="fw-bold">
+        {{ '#' * node.level }} {{ node.title }}
+    </div>
+    {% if node.text %}
+    <div class="text-muted small mt-1" style="white-space: pre-wrap;">{{ node.text[:500] }}{% if node.text|length > 500 %}...{% endif %}</div>
+    {% endif %}
+    {% if node.children %}
+    {% for child_node in node.children %}
+    {% with node=child_node %}
+    {% include 'includes/tree_node.html' %}
+    {% endwith %}
+    {% endfor %}
+    {% endif %}
+</div>

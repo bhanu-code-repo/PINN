@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>PINN Admin - {% block title %}{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+    <!-- FontAwesome -->
+    <script defer src="{{ url_for('static', path='assets/plugins/fontawesome/js/all.min.js') }}"></script>
+
+    <!-- App CSS -->
+    <link href="{{ url_for('static', path='assets/css/portal.css') }}" id="theme-style" rel="stylesheet">
+</head>
+
+{% block content %}{% endblock %}
+
+</html>
