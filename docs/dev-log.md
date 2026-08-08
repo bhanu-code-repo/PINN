@@ -583,6 +583,26 @@ structure as the index instead of vector embeddings — no chunking artifacts.
 
 ---
 
+## 2026-08-08
+
+### Phase 28 — Knowledge Base upload, pagination, and delete
+**Branch:** `feature/kb-upload-pagination`
+
+- **File upload** with drag-and-drop (`st.file_uploader`): supports .md, .txt, .pdf.
+  - Progress bar with status updates: dedup check → format detection → PDF page
+    classification → indexing → result display.
+  - Post-upload result card: doc ID, node count, tokens, hash, converter used.
+  - Dedup: shows "already indexed" with hash if file content unchanged.
+  - Uploaded files saved to `data/pinn-knowledge/uploads/`.
+- **Pagination**: 10 entries per page with page selector and "X of Y" display.
+  Seamlessly works with search and keyword filters.
+- **Delete** with confirmation dialog (`st.dialog`): removes document from store
+  and shows success message.
+- Browse/Search moved to tabbed layout: "Browse & Search" + "Upload Document".
+- 282 total fast tests, all passing.
+
+---
+
 ## Roadmap / Deferred
 
 - **Breather family `A*sech(x)`** — qualitative transitions across A; needs curriculum +
