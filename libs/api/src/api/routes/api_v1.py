@@ -101,9 +101,9 @@ def api_dashboard_stats(
 
     recent_colls = []
     for c in collections[:5]:
-        doc_ids = cm.get_collection_doc_ids(c.id)
+        doc_ids = cm.get_collection_doc_ids(c.collection_id)
         recent_colls.append({
-            "id": c.id, "name": c.name,
+            "id": c.collection_id, "name": c.name,
             "access": c.access, "doc_count": len(doc_ids),
         })
 
@@ -135,11 +135,11 @@ def api_list_collections(
     collections = cm.list_collections()
     result = []
     for c in collections:
-        doc_ids = cm.get_collection_doc_ids(c.id)
+        doc_ids = cm.get_collection_doc_ids(c.collection_id)
         result.append({
-            "id": c.id, "name": c.name, "description": c.description,
+            "id": c.collection_id, "name": c.name, "description": c.description,
             "access": c.access,
-            "allowed_groups": [g.strip() for g in (c.allowed_groups or "").split(",") if g.strip()],
+            "allowed_groups": c.allowed_groups,
             "doc_count": len(doc_ids),
             "created_at": c.created_at, "updated_at": c.updated_at,
         })
@@ -175,9 +175,9 @@ def api_get_collection(
 
     return {
         "collection": {
-            "id": c.id, "name": c.name, "description": c.description,
+            "id": c.collection_id, "name": c.name, "description": c.description,
             "access": c.access,
-            "allowed_groups": [g.strip() for g in (c.allowed_groups or "").split(",") if g.strip()],
+            "allowed_groups": c.allowed_groups,
             "created_at": c.created_at, "updated_at": c.updated_at,
         },
         "documents": documents,
@@ -191,11 +191,15 @@ def api_create_collection(
     _user: dict = Depends(require_auth),
     cm: CollectionManager = Depends(get_collection_manager),
 ):
-    c = cm.create_collection(
-        name=body.name, description=body.description,
-        access=body.access, allowed_groups=body.allowed_groups,
-    )
-    return {"id": c.id, "name": c.name, "description": c.description, "access": c.access}
+    groups = [g.strip() for g in body.allowed_groups.split(",") if g.strip()] if body.allowed_groups else None
+    try:
+        c = cm.create_collection(
+            name=body.name, description=body.description,
+            access=body.access, allowed_groups=groups,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from None
+    return {"id": c.collection_id, "name": c.name, "description": c.description, "access": c.access}
 
 
 @router.put("/collections/{coll_id}")
@@ -205,14 +209,15 @@ def api_update_collection(
     _user: dict = Depends(require_auth),
     cm: CollectionManager = Depends(get_collection_manager),
 ):
+    groups = [g.strip() for g in body.allowed_groups.split(",") if g.strip()] if body.allowed_groups else None
     try:
         c = cm.update_collection(
             coll_id, name=body.name, description=body.description,
-            access=body.access, allowed_groups=body.allowed_groups,
+            access=body.access, allowed_groups=groups,
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="Collection not found") from None
-    return {"id": c.id, "name": c.name, "description": c.description, "access": c.access}
+    return {"id": c.collection_id, "name": c.name, "description": c.description, "access": c.access}
 
 
 @router.delete("/collections/{coll_id}")
