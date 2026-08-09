@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from loguru import logger
@@ -29,6 +30,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="PINN Knowledge Admin",
         description="Admin interface for managing PINN knowledge collections",
         version="0.1.0",
+    )
+
+    # CORS for React frontend dev server
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://localhost:3001"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     # Session middleware for flash messages and auth
@@ -56,8 +66,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # Register routes
-    from .routes import auth, collections, dashboard, documents, rag_tester
+    from .routes import api_v1, auth, collections, dashboard, documents, rag_tester
 
+    app.include_router(api_v1.router)
     app.include_router(dashboard.router)
     app.include_router(collections.router)
     app.include_router(documents.router)
