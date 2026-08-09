@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
-import { AppShell } from "@/components/layout/app-shell";
+import { AuthGuard } from "@/components/layout/auth-guard";
 import { LoginPage } from "@/pages/login";
 import { DashboardPage } from "@/pages/dashboard";
 import { NotFoundPage } from "@/pages/not-found";
@@ -20,7 +20,7 @@ export const router = createBrowserRouter([
     element: <LoginPage />,
   },
   {
-    element: <AppShell />,
+    element: <AuthGuard />,
     children: [
       { index: true, element: <DashboardPage /> },
       { path: "collections", element: <Placeholder name="Collections" /> },
